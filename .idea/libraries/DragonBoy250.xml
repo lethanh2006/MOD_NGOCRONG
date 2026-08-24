@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="DragonBoy250">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/original/DragonBoy250.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

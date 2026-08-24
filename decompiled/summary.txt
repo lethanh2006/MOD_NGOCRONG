@@ -1,0 +1,61 @@
+Summary for original/DragonBoy250.jar
+Decompiled with CFR 0.152
+
+
+ac
+----------------------------
+
+a(y )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [55[CASE]], but top level block is 2[TRYBLOCK]
+h(y )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [19[CASE]], but top level block is 7[TRYBLOCK]
+
+
+af
+----------------------------
+
+a()
+  Unable to fully structure code
+
+
+ed
+----------------------------
+
+e()
+  Unable to fully structure code
+
+
+g
+----------------------------
+
+u()
+  Unable to fully structure code
+E(en )
+  Unable to fully structure code
+B()
+  Unable to fully structure code
+
+
+main.a
+----------------------------
+
+b(int )
+  Unable to fully structure code
+
+
+p
+----------------------------
+
+d()
+  Unable to fully structure code
+a(boolean boolean )
+  Unable to fully structure code
+a(int java.lang.Object )
+  Handled duff style switch with additional control
+
+
+s
+----------------------------
+
+run()
+  Unable to fully structure code
