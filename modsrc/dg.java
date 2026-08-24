@@ -88,6 +88,7 @@ implements Runnable {
         ao = true;
         while (ao) {
             long l2 = System.currentTimeMillis();
+            CharacterSpeedMod.update();
             this.d();
             this.repaint();
             this.serviceRepaints();
@@ -111,4 +112,3 @@ implements Runnable {
         }
     }
 }
-

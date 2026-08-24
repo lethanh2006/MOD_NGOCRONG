@@ -747,10 +747,13 @@ Các branch hỏng có thể là code chết, code dành cho server khác hoặc
 |---|---|
 | `modsrc/br.java` | Dùng `TimeUtil.d()` thay `l.d()`; thêm stack trace khi đóng kết nối; bỏ assignment CFR thừa trong catch |
 | `modsrc/cf.java` | Ép `-27` về `byte`; log exception của connector |
-| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật thay vì `-1` |
+| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi hook tốc độ nhân vật trước mỗi game tick |
 | `modsrc/TimeUtil.java` | Wrapper package-default gọi `l.d()` |
+| `modsrc/CharacterSpeedMod.java` | Tăng `af.e().O` của nhân vật chính từ mức server cấp (thường là 4) lên mặc định 6 khi đang ở `p` GameScr |
 
-Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Tuy nhiên snapshot `build/classes/` hiện chỉ có `TimeUtil.class`, `br.class`, `cf.class`; chưa có `dg.class`, nên phải compile lại trước khi coi build folder là đồng bộ.
+`CharacterSpeedMod` mặc định bật ở tốc độ 6, nhanh khoảng 1,5 lần so với tốc độ gốc thường là 4. Có thể gọi `setRunSpeed(8)` để thử mức 2 lần, `setEnabled(false)` để trả về tốc độ server đã cấp, hoặc `toggle()` để đảo trạng thái. Mod không thay delay 27 ms của game loop nên UI, mob và animation không bị tăng tốc theo. Server có thể cập nhật lại `af.O`, vì vậy hook kiểm tra và áp mod trước mỗi game tick.
+
+Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build speed mod, `build/classes/` phải có cả `dg.class` và `CharacterSpeedMod.class`; đóng gói thiếu class mới sẽ gây `NoClassDefFoundError`.
 
 ### 11.2 `patchwork/PatchBt.java`
 
@@ -768,6 +771,7 @@ Các tên JAR hiện không đủ để suy ra chính xác nội dung. So với 
 
 | JAR | Class khác/thêm đáng chú ý |
 |---|---|
+| `DragonBoy250-Speed.jar` | `dg`, `CharacterSpeedMod`; bản speed riêng, mặc định 6 |
 | `DragonBoy250-Mod.jar` | `dg` |
 | `DragonBoy250-Mod-infofix.jar` | `dg`, thêm resource info path |
 | `DragonBoy250-Debug.jar` | `br`, `dg`, `TimeUtil` |
@@ -819,6 +823,7 @@ javac \
   -target 8 \
   -cp 'original/DragonBoy250.jar:libs/microemulator.jar' \
   -d build/classes \
+  modsrc/CharacterSpeedMod.java \
   modsrc/TimeUtil.java \
   modsrc/br.java \
   modsrc/cf.java \
@@ -833,6 +838,7 @@ Không thêm `decompiled/` vào source path nếu không cần, vì `javac` có 
 cp original/DragonBoy250.jar dist/DragonBoy250-Mod.jar
 
 jar uf dist/DragonBoy250-Mod.jar \
+  -C build/classes CharacterSpeedMod.class \
   -C build/classes TimeUtil.class \
   -C build/classes br.class \
   -C build/classes cf.class \
@@ -865,6 +871,7 @@ Nên kiểm tra thêm hash/diff class thay vì chỉ nhìn tên file JAR.
 | Chỉnh menu/command | `az`, `de`, screen cụ thể |
 | Chỉnh HUD đơn giản | `p` paint, nhưng patch method nhỏ và kiểm tra z-order |
 | Chỉnh setting | `bu` |
+| Tăng tốc chạy nhân vật | `CharacterSpeedMod` + hook nhỏ trong `dg`; không copy `af`/`p` |
 | Chỉnh image/resource cache | `as`, `bl`, `bn`, `u` |
 | Auto action gameplay | Đọc `p` + `af` + caller `bt`; tách logic mod thành class mới nếu có thể |
 | Sửa receive packet | Ưu tiên bytecode patch nhỏ; không compile lại nguyên `ac`/`s` |
