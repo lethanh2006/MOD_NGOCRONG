@@ -89,6 +89,7 @@ implements Runnable {
         while (ao) {
             long l2 = System.currentTimeMillis();
             CharacterSpeedMod.update();
+            AutoBeanMod.update();
             AutoAttackMod.beforeGameTick();
             try {
                 this.d();

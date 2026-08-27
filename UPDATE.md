@@ -13,6 +13,7 @@ NRO-Mod/
 ├── decompiled/                 # Source decompile từ JAR gốc, chỉ dùng để đọc/tham khảo
 ├── modsrc/                     # Nơi viết và sửa code mod
 │   ├── AutoAttackMod.java
+│   ├── AutoBeanMod.java
 │   ├── cf.java
 │   ├── CharacterSpeedMod.java
 │   ├── cq.java
@@ -25,10 +26,12 @@ NRO-Mod/
 ├── build/
 │   └── classes/                # Class được tạo ra sau khi compile
 ├── patchwork/                  # Dùng khi cần patch bytecode trực tiếp
+│   └── PatchAutoBean.java      # Chặn ngưỡng ăn đậu 20% của auto train gốc
 ├── dist/
 │   ├── DragonBoy250-Debug4.jar # JAR base đã fix để chạy MicroEmulator
 │   └── DragonBoy250-Mod.jar    # JAR mod được build để chạy
 ├── tools/
+├── buildmod.sh                 # Build Java mod + patch p.class + đóng gói JAR
 └── README.md
 ```
 
@@ -126,6 +129,8 @@ javac \
 
 Nếu compile thành công, Terminal thường không in lỗi.
 
+> Lưu ý: riêng tính năng `buffdau` còn cần patch `p.class`. Vì vậy để tạo JAR chạy được đầy đủ, dùng `./buildmod.sh`; chỉ chạy `javac modsrc/*.java` là chưa đủ.
+
 Kiểm tra các class vừa tạo:
 
 ```bash
@@ -136,6 +141,7 @@ Ví dụ:
 
 ```text
 build/classes/AutoAttackMod.class
+build/classes/AutoBeanMod.class
 build/classes/cf.class
 build/classes/CharacterSpeedMod.class
 build/classes/cq.class
@@ -176,6 +182,7 @@ dg.class                 → ghi đè dg.class cũ
 cf.class                 → ghi đè cf.class cũ
 cq.class                 → ghi đè cq.class cũ
 AutoAttackMod.class      → thêm class mới vào JAR
+AutoBeanMod.class        → thêm class mới vào JAR
 CharacterSpeedMod.class  → thêm class mới vào JAR
 TimeUtil.class           → thêm class mới vào JAR
 ```
@@ -224,18 +231,11 @@ DragonBoy
 
 # 8. Lệnh duy nhất dùng sau mỗi lần chỉnh code
 
-Sau khi chỉnh tốc độ hoặc sửa bất kỳ file nào trong `modsrc/`, có thể chạy một lệnh duy nhất:
+Sau khi sửa code, build đầy đủ rồi chạy game bằng:
 
 ```bash
 cd ~/Projects/NRO-Mod && \
-rm -rf build/classes && \
-mkdir -p build/classes && \
-javac -source 8 -target 8 \
-  -cp "original/DragonBoy250.jar:libs/microemulator.jar" \
-  -d build/classes \
-  $(find modsrc -name '*.java') && \
-cp dist/DragonBoy250-Debug4.jar dist/DragonBoy250-Mod.jar && \
-jar uf dist/DragonBoy250-Mod.jar -C build/classes . && \
+./buildmod.sh && \
 java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
 ```
 
@@ -248,6 +248,8 @@ xóa build cũ
    ↓
 compile modsrc
    ↓
+patch p.c() bằng PatchAutoBean
+   ↓
 copy JAR base
    ↓
 ghi đè class mod mới
@@ -255,75 +257,27 @@ ghi đè class mod mới
 mở MicroEmulator
 ```
 
-Nếu compile bị lỗi, chuỗi lệnh sẽ dừng tại `javac` vì dùng `&&`.
+Nếu compile hoặc patch bị lỗi, script dừng và không tạo JAR mới từ kết quả lỗi.
 
 ---
 
-# 9. Khuyên dùng script `runmod.sh`
+# 9. Script `buildmod.sh`
 
-Để không phải copy lệnh dài mỗi lần, tạo:
+Project đã có sẵn `buildmod.sh`. Script thực hiện đủ năm bước: compile `modsrc`, compile patcher ASM, patch `p.class`, đóng gói từ `DragonBoy250-Debug4.jar` và kiểm tra các class bắt buộc.
 
-```bash
-cd ~/Projects/NRO-Mod
-nano runmod.sh
-```
-
-Nội dung:
+Cấp quyền chạy một lần:
 
 ```bash
-#!/bin/bash
-
-set -e
-
-cd "$(dirname "$0")"
-
-echo "======================================"
-echo "  NRO MOD - BUILD & RUN"
-echo "======================================"
-
-echo
-echo "[1/4] Cleaning..."
-rm -rf build/classes
-mkdir -p build/classes
-
-echo
-echo "[2/4] Compiling modsrc..."
-javac \
-  -source 8 \
-  -target 8 \
-  -cp "original/DragonBoy250.jar:libs/microemulator.jar" \
-  -d build/classes \
-  $(find modsrc -name '*.java')
-
-echo
-echo "[3/4] Updating DragonBoy250-Mod.jar..."
-cp dist/DragonBoy250-Debug4.jar \
-   dist/DragonBoy250-Mod.jar
-
-jar uf dist/DragonBoy250-Mod.jar \
-  -C build/classes .
-
-echo
-echo "Compiled classes:"
-find build/classes -type f
-
-echo
-echo "[4/4] Starting MicroEmulator..."
-java -jar libs/microemulator.jar \
-  dist/DragonBoy250-Mod.jar
+chmod +x buildmod.sh
 ```
 
-Cấp quyền chạy:
+Sau đó build bằng:
 
 ```bash
-chmod +x runmod.sh
+./buildmod.sh
 ```
 
-Sau đó mỗi lần chỉnh code chỉ cần:
-
-```bash
-./runmod.sh
-```
+Script chỉ build, không tự mở game. Lệnh chạy nằm ở mục 7.
 
 ---
 
@@ -357,11 +311,12 @@ Ctrl + S
 
 ### Bước 3 — build và chạy
 
-Nếu đã tạo `runmod.sh`:
+Build rồi chạy:
 
 ```bash
 cd ~/Projects/NRO-Mod
-./runmod.sh
+./buildmod.sh
+java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
 ```
 
 Hoặc dùng lệnh đầy đủ ở mục 8.
@@ -375,7 +330,8 @@ Nếu chưa đúng:
 ```text
 Sửa modsrc
 → Ctrl + S
-→ ./runmod.sh
+→ ./buildmod.sh
+→ chạy DragonBoy250-Mod.jar
 → test lại
 ```
 
@@ -383,18 +339,11 @@ Sửa modsrc
 
 # 11. Nếu chỉ muốn compile mà chưa chạy game
 
-Có thể dùng:
+Có thể chỉ build JAR mà chưa mở game:
 
 ```bash
-cd ~/Projects/NRO-Mod && \
-rm -rf build/classes && \
-mkdir -p build/classes && \
-javac -source 8 -target 8 \
-  -cp "original/DragonBoy250.jar:libs/microemulator.jar" \
-  -d build/classes \
-  $(find modsrc -name '*.java') && \
-cp dist/DragonBoy250-Debug4.jar dist/DragonBoy250-Mod.jar && \
-jar uf dist/DragonBoy250-Mod.jar -C build/classes .
+cd ~/Projects/NRO-Mod
+./buildmod.sh
 ```
 
 Sau đó chạy game sau bằng:
@@ -531,7 +480,9 @@ phải được giữ nguyên để:
 
 ---
 
-# 16. Sử dụng auto đánh quái bằng chat `ts`
+# 16. Sử dụng các lệnh mod trong chat
+
+## 16.1 Auto đánh quái bằng `ts`
 
 Khi đang ở màn hình chơi, mở chat và gửi:
 
@@ -554,6 +505,41 @@ modsrc/AutoAttackMod.java  # trạng thái bật/tắt và hook auto train
 modsrc/dg.java             # gọi hook trước/sau mỗi game tick
 ```
 
+## 16.2 Tự dùng đậu thần bằng `buffdau`
+
+Đặt ngưỡng HP theo số điểm máu còn lại:
+
+```text
+buffdau 10
+```
+
+Khi HP hiện tại còn tối đa 10 điểm, mod tự tìm đậu thần trong hành trang và gửi lệnh sử dụng. Có thể đổi `10` thành một ngưỡng HP nguyên không âm khác.
+
+Tắt ngưỡng tùy chỉnh bằng:
+
+```text
+buffdau 0
+```
+
+Chi tiết kỹ thuật:
+
+- Dùng `af.U` làm HP hiện tại và so sánh trực tiếp với ngưỡng trong lệnh.
+- Bỏ qua khi nhân vật chết, đang ở trạng thái không thể dùng đậu hoặc HP đã đầy.
+- Kích hoạt phím dùng đậu nội bộ để đi qua `p.H()`, dùng chung guard, cooldown 10 giây và hiệu ứng của game gốc.
+- `p.H()` gọi `af.M()`: logic gốc tìm item có type `dd.b == 6` và gửi packet dùng item `-43`; không hard-code template ID đậu.
+- Patch ASM chỉ bỏ qua call auto-đậu 20% nằm trong `p.c()` khi `buffdau` đang bật, tránh ăn sớm và tránh hai packet cùng tick. Khi `buffdau 0`, hành vi 20% gốc được giữ nguyên.
+- Nếu hết đậu, mod báo một lần và tự nhận biết khi hành trang có đậu trở lại.
+- `buffdau` là lệnh cục bộ, không được gửi lên server.
+
+Các file tham gia:
+
+```text
+modsrc/cq.java          # bắt và chặn lệnh buffdau
+modsrc/AutoBeanMod.java # parse ngưỡng, kiểm tra HP và dùng đậu
+modsrc/dg.java          # gọi AutoBeanMod.update() mỗi game tick
+patchwork/PatchAutoBean.java # bọc call auto-đậu gốc trong p.c()
+```
+
 ---
 
 # 17. Git sau khi mod chạy ổn
@@ -562,8 +548,8 @@ Khi một thay đổi chạy ổn:
 
 ```bash
 git status
-git add modsrc README.md UPDATE.md
-git commit -m "Update character speed mod"
+git add modsrc patchwork buildmod.sh README.md UPDATE.md
+git commit -m "Add configurable auto bean command"
 git push
 ```
 
@@ -578,9 +564,9 @@ Sau mỗi lần sửa code:
 ```text
 1. Sửa file trong modsrc/
 2. Lưu file
-3. Compile modsrc/
-4. Copy Debug4.jar → Mod.jar
-5. Update .class vào Mod.jar
+3. Chạy buildmod.sh
+4. Script compile modsrc và patch p.class
+5. Script tạo DragonBoy250-Mod.jar từ Debug4.jar
 6. Chạy MicroEmulator
 7. Test
 ```
@@ -588,11 +574,11 @@ Sau mỗi lần sửa code:
 Lệnh tiện nhất:
 
 ```bash
-./runmod.sh
+./buildmod.sh
 ```
 
 Hoặc dùng một lệnh:
 
 ```bash
-cd ~/Projects/NRO-Mod && rm -rf build/classes && mkdir -p build/classes && javac -source 8 -target 8 -cp "original/DragonBoy250.jar:libs/microemulator.jar" -d build/classes $(find modsrc -name '*.java') && cp dist/DragonBoy250-Debug4.jar dist/DragonBoy250-Mod.jar && jar uf dist/DragonBoy250-Mod.jar -C build/classes . && java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
+cd ~/Projects/NRO-Mod && ./buildmod.sh && java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
 ```

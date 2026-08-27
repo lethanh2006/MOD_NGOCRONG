@@ -152,9 +152,11 @@ implements b {
         }
     }
 
-    /** Gui chat binh thuong, nhung giu lenh ts lai o client. */
+    /** Gui chat binh thuong, nhung giu cac lenh mod lai o client. */
     private void a(String message, String context) {
-        if (this.c instanceof p && AutoAttackMod.handleChat(message)) {
+        if (this.c instanceof p
+                && (AutoAttackMod.handleChat(message)
+                || AutoBeanMod.handleChat(message))) {
             this.b = false;
             return;
         }

@@ -747,21 +747,26 @@ Các branch hỏng có thể là code chết, code dành cho server khác hoặc
 |---|---|
 | `modsrc/br.java` | Dùng `TimeUtil.d()` thay `l.d()`; thêm stack trace khi đóng kết nối; bỏ assignment CFR thừa trong catch |
 | `modsrc/cf.java` | Ép `-27` về `byte`; log exception của connector |
-| `modsrc/cq.java` | Chặn lệnh chat cục bộ `ts` ở cả hai đường submit; chat thường vẫn đi qua callback gốc |
-| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi hook tốc độ và auto đánh trước mỗi game tick |
+| `modsrc/cq.java` | Chặn lệnh chat cục bộ `ts` và `buffdau` ở cả hai đường submit; chat thường vẫn đi qua callback gốc |
+| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi các hook tốc độ, auto đậu và auto đánh mỗi game tick |
 | `modsrc/TimeUtil.java` | Wrapper package-default gọi `l.d()` |
 | `modsrc/CharacterSpeedMod.java` | Tăng `af.e().O` của nhân vật chính từ mức server cấp (thường là 4) lên mặc định 6 khi đang ở `p` GameScr |
 | `modsrc/AutoAttackMod.java` | Bật/tắt auto đánh quái bằng chat `ts`; tái sử dụng nhánh auto train có sẵn trong `p.c()` |
+| `modsrc/AutoBeanMod.java` | Đặt ngưỡng HP bằng `buffdau N`; tự dùng đậu thần từ hành trang khi HP còn không quá N điểm |
 
 `CharacterSpeedMod` mặc định bật ở tốc độ 6, nhanh khoảng 1,5 lần so với tốc độ gốc thường là 4. Có thể gọi `setRunSpeed(8)` để thử mức 2 lần, `setEnabled(false)` để trả về tốc độ server đã cấp, hoặc `toggle()` để đảo trạng thái. Mod không thay delay 27 ms của game loop nên UI, mob và animation không bị tăng tốc theo. Server có thể cập nhật lại `af.O`, vì vậy hook kiểm tra và áp mod trước mỗi game tick.
 
 Trong GameScr, chat đúng `ts` (không phân biệt hoa/thường và khoảng trắng đầu/cuối) để bật auto đánh quái; chat `ts` lần nữa để tắt. Lệnh được xử lý cục bộ và không gửi packet chat 44 lên server. Mod mở tạm cờ `p.bk` trong lúc update rồi khôi phục ngay, còn việc tìm mob, chọn skill, kiểm tra mana/cooldown và gửi packet đánh vẫn do nhánh auto train gốc trong `p.c()` thực hiện. Nhánh gốc này có dịch tọa độ client tới mob trước khi gửi vị trí, nên cần test thêm phản ứng kéo vị trí của từng server/map.
 
-Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build, `build/classes/` phải có `dg.class`, `CharacterSpeedMod.class`, `cq.class` và `AutoAttackMod.class`; đóng gói thiếu class mod mới sẽ gây `NoClassDefFoundError`.
+Chat `buffdau 10` để bật tự dùng đậu khi HP hiện tại còn tối đa 10 điểm; dùng `buffdau 0` để tắt ngưỡng tùy chỉnh. `AutoBeanMod` kiểm tra `af.U` rồi kích hoạt phím dùng đậu nội bộ, nhờ đó thao tác vẫn đi qua `p.H()` và dùng chung guard, cooldown 10 giây, thông báo cùng hiệu ứng gốc. `p.H()` gọi `af.M()`, method nhận diện đậu bằng item type `dd.b == 6` rồi gửi packet dùng item `-43` theo template ID, nên không cần hard-code ID của từng cấp đậu.
 
-### 11.2 `patchwork/PatchBt.java`
+Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build, `build/classes/` phải có `dg.class`, `CharacterSpeedMod.class`, `cq.class`, `AutoAttackMod.class` và `AutoBeanMod.class`; đóng gói thiếu class mod mới sẽ gây `NoClassDefFoundError`.
 
-Patch ASM hiện làm ba việc trong `bt.c()`:
+### 11.2 `patchwork/`
+
+`PatchAutoBean.java` bọc duy nhất call `p.H()` trong nhánh auto train của `p.c()` bằng điều kiện `!AutoBeanMod.isEnabled()`. Khi `buffdau` bật, ngưỡng tùy chỉnh không bị auto train gốc ăn đậu sớm ở 20% HP/KI và không gửi hai packet trong một tick. Các call `p.H()` từ phím dùng đậu vẫn giữ nguyên; `buffdau 0` cũng giữ hành vi 20% gốc. `buildmod.sh` tự compile và áp patch này lên `p.class` lấy từ `DragonBoy250-Debug4.jar`.
+
+`PatchBt.java` làm ba việc trong `bt.c()`:
 
 1. Đổi resource path `res\\info` thành `res/info`.
 2. Tạo byte array theo `InputStream.available()`.
@@ -776,7 +781,7 @@ Các tên JAR hiện không đủ để suy ra chính xác nội dung. So với 
 | JAR | Class khác/thêm đáng chú ý |
 |---|---|
 | `DragonBoy250-Speed.jar` | `dg`, `CharacterSpeedMod`; bản speed riêng, mặc định 6 |
-| `DragonBoy250-Mod.jar` | `dg` |
+| `DragonBoy250-Mod.jar` | Kế thừa các fix của Debug4; thêm/ghi đè `cq`, `dg`, `p`, `CharacterSpeedMod`, `AutoAttackMod`, `AutoBeanMod` |
 | `DragonBoy250-Mod-infofix.jar` | `dg`, thêm resource info path |
 | `DragonBoy250-Debug.jar` | `br`, `dg`, `TimeUtil` |
 | `DragonBoy250-Debug2.jar` | `br`, `cf`, `dg`, `TimeUtil` |
