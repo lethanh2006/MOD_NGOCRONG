@@ -89,7 +89,13 @@ implements Runnable {
         while (ao) {
             long l2 = System.currentTimeMillis();
             CharacterSpeedMod.update();
-            this.d();
+            AutoAttackMod.beforeGameTick();
+            try {
+                this.d();
+            }
+            finally {
+                AutoAttackMod.afterGameTick();
+            }
             this.repaint();
             this.serviceRepaints();
             long l3 = System.currentTimeMillis() - l2;

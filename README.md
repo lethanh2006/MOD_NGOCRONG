@@ -747,13 +747,17 @@ Các branch hỏng có thể là code chết, code dành cho server khác hoặc
 |---|---|
 | `modsrc/br.java` | Dùng `TimeUtil.d()` thay `l.d()`; thêm stack trace khi đóng kết nối; bỏ assignment CFR thừa trong catch |
 | `modsrc/cf.java` | Ép `-27` về `byte`; log exception của connector |
-| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi hook tốc độ nhân vật trước mỗi game tick |
+| `modsrc/cq.java` | Chặn lệnh chat cục bộ `ts` ở cả hai đường submit; chat thường vẫn đi qua callback gốc |
+| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi hook tốc độ và auto đánh trước mỗi game tick |
 | `modsrc/TimeUtil.java` | Wrapper package-default gọi `l.d()` |
 | `modsrc/CharacterSpeedMod.java` | Tăng `af.e().O` của nhân vật chính từ mức server cấp (thường là 4) lên mặc định 6 khi đang ở `p` GameScr |
+| `modsrc/AutoAttackMod.java` | Bật/tắt auto đánh quái bằng chat `ts`; tái sử dụng nhánh auto train có sẵn trong `p.c()` |
 
 `CharacterSpeedMod` mặc định bật ở tốc độ 6, nhanh khoảng 1,5 lần so với tốc độ gốc thường là 4. Có thể gọi `setRunSpeed(8)` để thử mức 2 lần, `setEnabled(false)` để trả về tốc độ server đã cấp, hoặc `toggle()` để đảo trạng thái. Mod không thay delay 27 ms của game loop nên UI, mob và animation không bị tăng tốc theo. Server có thể cập nhật lại `af.O`, vì vậy hook kiểm tra và áp mod trước mỗi game tick.
 
-Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build speed mod, `build/classes/` phải có cả `dg.class` và `CharacterSpeedMod.class`; đóng gói thiếu class mới sẽ gây `NoClassDefFoundError`.
+Trong GameScr, chat đúng `ts` (không phân biệt hoa/thường và khoảng trắng đầu/cuối) để bật auto đánh quái; chat `ts` lần nữa để tắt. Lệnh được xử lý cục bộ và không gửi packet chat 44 lên server. Mod mở tạm cờ `p.bk` trong lúc update rồi khôi phục ngay, còn việc tìm mob, chọn skill, kiểm tra mana/cooldown và gửi packet đánh vẫn do nhánh auto train gốc trong `p.c()` thực hiện. Nhánh gốc này có dịch tọa độ client tới mob trước khi gửi vị trí, nên cần test thêm phản ứng kéo vị trí của từng server/map.
+
+Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build, `build/classes/` phải có `dg.class`, `CharacterSpeedMod.class`, `cq.class` và `AutoAttackMod.class`; đóng gói thiếu class mod mới sẽ gây `NoClassDefFoundError`.
 
 ### 11.2 `patchwork/PatchBt.java`
 

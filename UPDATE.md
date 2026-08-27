@@ -12,9 +12,10 @@ Project hiện tại được tổ chức như sau:
 NRO-Mod/
 ├── decompiled/                 # Source decompile từ JAR gốc, chỉ dùng để đọc/tham khảo
 ├── modsrc/                     # Nơi viết và sửa code mod
-│   ├── bf.java
+│   ├── AutoAttackMod.java
 │   ├── cf.java
 │   ├── CharacterSpeedMod.java
+│   ├── cq.java
 │   ├── dg.java
 │   └── TimeUtil.java
 ├── original/
@@ -134,9 +135,10 @@ find build/classes -type f
 Ví dụ:
 
 ```text
-build/classes/bf.class
+build/classes/AutoAttackMod.class
 build/classes/cf.class
 build/classes/CharacterSpeedMod.class
+build/classes/cq.class
 build/classes/dg.class
 build/classes/TimeUtil.class
 ```
@@ -172,6 +174,8 @@ Ví dụ:
 ```text
 dg.class                 → ghi đè dg.class cũ
 cf.class                 → ghi đè cf.class cũ
+cq.class                 → ghi đè cq.class cũ
+AutoAttackMod.class      → thêm class mới vào JAR
 CharacterSpeedMod.class  → thêm class mới vào JAR
 TimeUtil.class           → thêm class mới vào JAR
 ```
@@ -527,7 +531,32 @@ phải được giữ nguyên để:
 
 ---
 
-# 16. Git sau khi mod chạy ổn
+# 16. Sử dụng auto đánh quái bằng chat `ts`
+
+Khi đang ở màn hình chơi, mở chat và gửi:
+
+```text
+ts
+```
+
+- Lần đầu: bật tự động tìm và đánh quái.
+- Lần tiếp theo: tắt tự động đánh quái.
+- Có thể viết `TS` hoặc thêm khoảng trắng đầu/cuối.
+- Đây là lệnh cục bộ của mod nên chữ `ts` không được gửi lên server.
+
+Mod tái sử dụng nhánh auto train có sẵn trong `p.c()`: client tự tìm mob còn sống, chọn skill đang sẵn sàng và đánh theo cooldown. Khi test nên kiểm tra thêm các tình huống hết mana, mob chết/chuyển mục tiêu, đổi map, nhân vật chết và server kéo lại vị trí.
+
+Các file tham gia:
+
+```text
+modsrc/cq.java             # bắt lệnh ở cả Enter và nút Gửi
+modsrc/AutoAttackMod.java  # trạng thái bật/tắt và hook auto train
+modsrc/dg.java             # gọi hook trước/sau mỗi game tick
+```
+
+---
+
+# 17. Git sau khi mod chạy ổn
 
 Khi một thay đổi chạy ổn:
 
