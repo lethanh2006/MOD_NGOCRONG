@@ -771,6 +771,10 @@ Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc 
 
 `PatchServerList.java` vá `bs.class`: nếu danh sách động hoặc cache `NRlink3` chưa có `Vũ trụ 15`, client bổ sung `27.0.14.69:14445`. Entry do server trả về luôn được ưu tiên và không bị thêm trùng.
 
+`run-pc.sh` giữ lại `NRlink3` và server đã chọn để danh sách mới không biến mất
+sau khi khởi động lại. Nếu một server đang bảo trì làm client tự kết nối lặp,
+chạy `NRO_RESET_SERVER=1 ./run-pc.sh`; thao tác này chỉ reset `svselect`.
+
 `PatchBt.java` làm ba việc trong `bt.c()`:
 
 1. Đổi resource path `res\\info` thành `res/info`.

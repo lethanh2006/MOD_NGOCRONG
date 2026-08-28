@@ -5,16 +5,17 @@ final class cf
 implements Runnable {
     private final String b;
     private int c;
+    final int d;
     final br a;
 
-    cf(br br2, String string, int n2) {
+    cf(br br2, String string, int n2, int generation) {
         this.a = br2;
         this.b = string;
         this.c = n2;
+        this.d = generation;
     }
 
     public final void run() {
-        br.n = false;
         new Thread(new ct(this)).start();
         this.a.e = true;
         this.a.d = true;
@@ -37,13 +38,11 @@ implements Runnable {
             return;
         }
         catch (Exception exception) {
-            System.out.println("========== CF.RUN EXCEPTION ==========");
-            exception.printStackTrace();
             try {
                 Thread.sleep(500L);
             }
             catch (InterruptedException interruptedException) {}
-            if (br.n) {
+            if (this.a.y != this.d) {
                 return;
             }
             if (this.a.b != null) {
@@ -53,4 +52,3 @@ implements Runnable {
         }
     }
 }
-

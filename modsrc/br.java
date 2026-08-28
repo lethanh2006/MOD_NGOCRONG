@@ -15,15 +15,15 @@ implements db {
     public bd b;
     public boolean c = true;
     private ay r;
-    public boolean d;
-    public boolean e;
+    public volatile boolean d;
+    public volatile boolean e;
     private final dw s = new dw(this);
     private Thread t;
     public Thread f;
     public Thread g;
     public int h;
     public int i;
-    boolean j;
+    volatile boolean j;
     public byte[] k = null;
     private byte u;
     private byte v;
@@ -32,6 +32,7 @@ implements db {
     private long w = 0L;
     public static boolean n;
     private static int x;
+    volatile int y;
 
     public static br a() {
         return o;
@@ -58,22 +59,23 @@ implements db {
         if (this.d || this.e) {
             return;
         }
-        // Guard: nếu thread connect cũ còn chạy thì không mở thêm
+        // Chỉ giữ một lần connect đang chạy. ay giới hạn thời gian mở socket,
+        // nên một server không phản hồi sẽ tự nhả guard trước lần retry kế tiếp.
         if (this.t != null && this.t.isAlive()) {
-            System.out.println(">>connect SKIP: thread still alive");
             return;
         }
         if (TimeUtil.d() < this.w) {
             return;
         }
-        this.w = TimeUtil.d() + 3000L;  // cooldown 3s, đủ thời gian handshake
+        this.w = TimeUtil.d() + 1000L;
         if (this.c) {
             bs.t = -1;
         }
         this.j = false;
         br br2 = this;
         br2.f();
-        this.t = new Thread(new cf(this, string, n2));
+        int generation = ++this.y;
+        this.t = new Thread(new cf(this, string, n2, generation));
         this.t.start();
     }
 
@@ -141,14 +143,11 @@ implements db {
     }
 
     private void f() {
-        System.out.println("========== BR.F() CLOSE CONNECTION ==========");
-        System.out.println(
-                "c=" + this.c +
-                        " d=" + this.d +
-                        " e=" + this.e +
-                        " j=" + this.j
-        );
-        new Exception("TRACE: WHO CLOSED BR CONNECTION").printStackTrace();
+        // Invalidates connect/watchdog threads that belong to the old socket.
+        ++this.y;
+        // Messages queued before the handshake belong to the socket being closed.
+        // Keeping them would replay stale -29/login packets after the next retry.
+        this.c();
         this.k = null;
         this.u = 0;
         this.v = 0;
@@ -223,4 +222,3 @@ implements db {
         return by2;
     }
 }
-

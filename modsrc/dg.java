@@ -93,6 +93,7 @@ implements Runnable {
             AutoAttackMod.beforeGameTick();
             try {
                 this.d();
+                AutoLoginMod.update();
             }
             finally {
                 AutoAttackMod.afterGameTick();

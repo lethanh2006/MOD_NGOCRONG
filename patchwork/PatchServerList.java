@@ -16,6 +16,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
@@ -23,9 +24,11 @@ import org.objectweb.asm.tree.VarInsnNode;
 public final class PatchServerList {
     private static final String CLASS_NAME = "bs";
     private static final String ENSURE_METHOD = "nro$ensureUniverse15";
+    private static final String CLAMP_METHOD = "nro$clampServerSelection";
     private static final String SERVER_NAME = "Vũ trụ 15";
     private static final String SERVER_HOST = "27.0.14.69";
     private static final int SERVER_PORT = 14445;
+    private static final int SERVER_NEW_FLAG = 1;
 
     private PatchServerList() {
     }
@@ -45,10 +48,15 @@ public final class PatchServerList {
             throw new IllegalArgumentException("Input class is not bs.class");
         }
         requireMissingMethod(classNode, ENSURE_METHOD, "()V");
+        requireMissingMethod(classNode, CLAMP_METHOD, "()V");
 
         classNode.methods.add(createEnsureMethod());
+        classNode.methods.add(createClampMethod());
         patchStringParser(findMethod(classNode, "a", "(Ljava/lang/String;)V"));
-        patchCachedListLoader(findMethod(classNode, "f", "()V"));
+        MethodNode cachedListLoader = findMethod(classNode, "f", "()V");
+        patchCachedListLoader(cachedListLoader);
+        patchCachedListRecovery(cachedListLoader);
+        patchServerConnector(findMethod(classNode, "k", "()V"));
 
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         classNode.accept(writer);
@@ -149,9 +157,9 @@ public final class PatchServerList {
         code.add(new IntInsnNode(Opcodes.SIPUSH, SERVER_PORT));
         code.add(new InsnNode(Opcodes.SASTORE));
 
-        setZeroByte(code, 4);
-        setZeroByte(code, 5);
-        setZeroByte(code, 6);
+        setByte(code, 4, 0);
+        setByte(code, 5, 0);
+        setByte(code, 6, SERVER_NEW_FLAG);
 
         code.add(new VarInsnNode(Opcodes.ALOAD, 1));
         code.add(new FieldInsnNode(
@@ -173,6 +181,84 @@ public final class PatchServerList {
         code.add(new FieldInsnNode(Opcodes.PUTSTATIC, CLASS_NAME, "h", "[B"));
         code.add(new VarInsnNode(Opcodes.ALOAD, 6));
         code.add(new FieldInsnNode(Opcodes.PUTSTATIC, CLASS_NAME, "i", "[B"));
+
+        code.add(done);
+        code.add(new InsnNode(Opcodes.RETURN));
+        return method;
+    }
+
+    /** Prevents a stale svselect index from indexing a shorter refreshed list. */
+    private static MethodNode createClampMethod() {
+        MethodNode method = new MethodNode(
+                Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC,
+                CLAMP_METHOD,
+                "()V",
+                null,
+                null);
+        InsnList code = method.instructions;
+        LabelNode reset = new LabelNode();
+        LabelNode useZero = new LabelNode();
+        LabelNode store = new LabelNode();
+        LabelNode done = new LabelNode();
+
+        code.add(new FieldInsnNode(
+                Opcodes.GETSTATIC,
+                CLASS_NAME,
+                "x",
+                "[Ljava/lang/String;"));
+        code.add(new JumpInsnNode(Opcodes.IFNULL, done));
+        code.add(new FieldInsnNode(
+                Opcodes.GETSTATIC,
+                CLASS_NAME,
+                "x",
+                "[Ljava/lang/String;"));
+        code.add(new InsnNode(Opcodes.ARRAYLENGTH));
+        code.add(new JumpInsnNode(Opcodes.IFLE, done));
+
+        code.add(new FieldInsnNode(Opcodes.GETSTATIC, CLASS_NAME, "n", "I"));
+        code.add(new JumpInsnNode(Opcodes.IFLT, reset));
+        code.add(new FieldInsnNode(Opcodes.GETSTATIC, CLASS_NAME, "n", "I"));
+        code.add(new FieldInsnNode(
+                Opcodes.GETSTATIC,
+                CLASS_NAME,
+                "x",
+                "[Ljava/lang/String;"));
+        code.add(new InsnNode(Opcodes.ARRAYLENGTH));
+        code.add(new JumpInsnNode(Opcodes.IF_ICMPLT, done));
+
+        code.add(reset);
+        code.add(new FieldInsnNode(Opcodes.GETSTATIC, CLASS_NAME, "b", "B"));
+        code.add(new VarInsnNode(Opcodes.ISTORE, 0));
+        code.add(new VarInsnNode(Opcodes.ILOAD, 0));
+        code.add(new JumpInsnNode(Opcodes.IFLT, useZero));
+        code.add(new VarInsnNode(Opcodes.ILOAD, 0));
+        code.add(new FieldInsnNode(
+                Opcodes.GETSTATIC,
+                CLASS_NAME,
+                "x",
+                "[Ljava/lang/String;"));
+        code.add(new InsnNode(Opcodes.ARRAYLENGTH));
+        code.add(new JumpInsnNode(Opcodes.IF_ICMPLT, store));
+
+        code.add(useZero);
+        code.add(new InsnNode(Opcodes.ICONST_0));
+        code.add(new VarInsnNode(Opcodes.ISTORE, 0));
+
+        code.add(store);
+        code.add(new VarInsnNode(Opcodes.ILOAD, 0));
+        code.add(new FieldInsnNode(Opcodes.PUTSTATIC, CLASS_NAME, "n", "I"));
+        code.add(new FieldInsnNode(
+                Opcodes.GETSTATIC,
+                CLASS_NAME,
+                "w",
+                "Ljava/lang/String;"));
+        code.add(new VarInsnNode(Opcodes.ILOAD, 0));
+        code.add(new MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                "eu",
+                "a",
+                "(Ljava/lang/String;I)V",
+                false));
 
         code.add(done);
         code.add(new InsnNode(Opcodes.RETURN));
@@ -227,6 +313,61 @@ public final class PatchServerList {
         }
     }
 
+    /** Falls back to the built-in list instead of leaving half-read arrays. */
+    private static void patchCachedListRecovery(MethodNode method) {
+        int patchedHandlers = 0;
+        for (TryCatchBlockNode block : method.tryCatchBlocks) {
+            if (!"java/io/IOException".equals(block.type)) {
+                continue;
+            }
+            AbstractInsnNode pop = nextExecutable(block.handler);
+            AbstractInsnNode returnInstruction = nextExecutable(
+                    pop == null ? null : pop.getNext());
+            if (pop == null
+                    || pop.getOpcode() != Opcodes.POP
+                    || returnInstruction == null
+                    || returnInstruction.getOpcode() != Opcodes.RETURN) {
+                throw new IllegalStateException(
+                        "Unexpected IOException handler in bs.f()");
+            }
+
+            InsnList fallback = new InsnList();
+            fallback.add(new FieldInsnNode(
+                    Opcodes.GETSTATIC,
+                    CLASS_NAME,
+                    "j",
+                    "Ljava/lang/String;"));
+            fallback.add(new MethodInsnNode(
+                    Opcodes.INVOKESTATIC,
+                    CLASS_NAME,
+                    "a",
+                    "(Ljava/lang/String;)V",
+                    false));
+            method.instructions.insertBefore(returnInstruction, fallback);
+            ++patchedHandlers;
+        }
+        if (patchedHandlers != 1) {
+            throw new IllegalStateException(
+                    "Expected one IOException handler in bs.f(), found "
+                            + patchedHandlers);
+        }
+    }
+
+    private static void patchServerConnector(MethodNode method) {
+        AbstractInsnNode first = method.instructions.getFirst();
+        if (first == null) {
+            throw new IllegalStateException("Empty bs.k() method");
+        }
+        InsnList clampCall = new InsnList();
+        clampCall.add(new MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                CLASS_NAME,
+                CLAMP_METHOD,
+                "()V",
+                false));
+        method.instructions.insertBefore(first, clampCall);
+    }
+
     private static InsnList ensureCall() {
         InsnList call = new InsnList();
         call.add(new MethodInsnNode(
@@ -236,6 +377,13 @@ public final class PatchServerList {
                 "()V",
                 false));
         return call;
+    }
+
+    private static AbstractInsnNode nextExecutable(AbstractInsnNode instruction) {
+        while (instruction != null && instruction.getOpcode() < 0) {
+            instruction = instruction.getNext();
+        }
+        return instruction;
     }
 
     private static void requireArray(
@@ -310,10 +458,10 @@ public final class PatchServerList {
                 false));
     }
 
-    private static void setZeroByte(InsnList code, int arrayLocal) {
+    private static void setByte(InsnList code, int arrayLocal, int value) {
         code.add(new VarInsnNode(Opcodes.ALOAD, arrayLocal));
         code.add(new VarInsnNode(Opcodes.ILOAD, 0));
-        code.add(new InsnNode(Opcodes.ICONST_0));
+        code.add(new InsnNode(value == 0 ? Opcodes.ICONST_0 : Opcodes.ICONST_1));
         code.add(new InsnNode(Opcodes.BASTORE));
     }
 

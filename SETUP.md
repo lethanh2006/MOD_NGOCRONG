@@ -89,12 +89,13 @@ Nếu thành công sẽ thấy:
 [1/6] Compile modsrc
 [2/6] Compile bytecode patchers
 [3/6] Patch p.c() auto-bean call
-[4/6] Patch server selection
+[4/6] Patch server list and selection
 [5/6] Build DragonBoy250-Mod.jar
 [6/6] Verify required classes
 AutoAttackMod.class
 AutoBeanMod.class
 CharacterSpeedMod.class
+bs.class
 cq.class
 dg.class
 ev.class
@@ -149,6 +150,7 @@ NRO-Mod/
 │   └── TimeUtil.java
 ├── patchwork/                  ← Bytecode patch (ASM)
 │   ├── PatchAutoBean.java
+│   ├── PatchServerList.java
 │   └── PatchServerSelection.java
 ├── libs/microemulator.jar      ← J2ME emulator
 ├── tools/                      ← CFR, ASM
@@ -226,7 +228,15 @@ Không sửa file trong `decompiled/`.
 
 ### Game báo "Máy chủ tắt hoặc mất sóng [2]"
 
-Thử chọn server khác. Server VT15 sẽ tự xuất hiện trong danh sách sau khi kết nối lần đầu thành công.
+Máy chủ đã chọn có thể đang bảo trì. Chạy lệnh sau để chỉ quên máy chủ đang
+chọn, không xóa tài khoản hay danh sách máy chủ:
+
+```bash
+NRO_RESET_SERVER=1 ./run-pc.sh
+```
+
+Sau khi build bằng `./buildmod.sh`, VT15 xuất hiện ngay cả khi cache danh sách
+chưa kịp được máy chủ cập nhật.
 
 ### Terminal in `Socket connect failed to <IP>:<PORT>`
 
