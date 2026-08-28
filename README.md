@@ -34,6 +34,7 @@ Hai class cần thận trọng nhất là:
 | `dist/` | Các JAR đã ghép để chạy thử | Không coi là source chuẩn |
 | `tools/cfr.jar` | Decompiler CFR 0.152 | Không |
 | `tools/asm*.jar` | ASM dùng cho bytecode patch | Không |
+| `run-pc.sh` | Chạy bản mod trong Canvas ngang `480x320`, tái tạo layout PC cũ | Có |
 
 Project hiện chưa có build script tái lập toàn bộ quy trình và cũng không phải Git worktree. Vì vậy nên ghi lại mỗi thay đổi, class nào được thay và JAR nào chứa nó.
 

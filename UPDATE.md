@@ -34,6 +34,7 @@ NRO-Mod/
 │   └── DragonBoy250-Mod.jar    # JAR mod được build để chạy
 ├── tools/
 ├── buildmod.sh                 # Build Java mod + patch p/bs/ev + đóng gói JAR
+├── run-pc.sh                   # Chạy MicroEmulator với Canvas PC ngang 480x320
 └── README.md
 ```
 
@@ -131,7 +132,7 @@ javac \
 
 Nếu compile thành công, Terminal thường không in lỗi.
 
-> Lưu ý: riêng tính năng `buffdau` còn cần patch `p.class`. Vì vậy để tạo JAR chạy được đầy đủ, dùng `./buildmod.sh`; chỉ chạy `javac modsrc/*.java` là chưa đủ.
+> Lưu ý: JAR hoàn chỉnh còn cần patch ASM cho `p.class`, `bs.class` và `ev.class`. Vì vậy phải dùng `./buildmod.sh`; chỉ chạy `javac modsrc/*.java` rồi `jar uf` sẽ làm mất patch chọn/cuộn server và fallback Vũ trụ 15.
 
 Kiểm tra các class vừa tạo:
 
@@ -177,6 +178,8 @@ jar uf dist/DragonBoy250-Mod.jar -C build/classes .
 
 Lệnh trên sẽ ghi đè những `.class` đã tồn tại và thêm những class mod mới.
 
+> Đây chỉ là cách ghép JAR thủ công để tham khảo. Không dùng JAR này để chạy bản mod hiện tại; hãy chạy `./buildmod.sh` để ba patch ASM được áp dụng.
+
 Ví dụ:
 
 ```text
@@ -216,7 +219,15 @@ jar tf dist/DragonBoy250-Mod.jar \
 
 # 7. Chạy bản mod
 
-Chạy bằng MicroEmulator:
+Chạy giao diện ngang giống bản PC cũ:
+
+```bash
+./run-pc.sh
+```
+
+Script khóa Canvas nguồn ở `480x320` ngay trước khi MIDlet khởi tạo. Kích thước này kích hoạt layout desktop rộng nhưng vẫn giữ `en.b = 1`, phù hợp với bộ tài nguyên `x1` hiện có. Nếu muốn phóng cửa sổ, chọn `Options → Scaled display → x2` hoặc `x3`; phần phóng này không làm đổi layout gốc `480x320`.
+
+Cách chạy MicroEmulator với kích thước đã lưu trong cấu hình người dùng:
 
 ```bash
 java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
@@ -238,7 +249,7 @@ Sau khi sửa code, build đầy đủ rồi chạy game bằng:
 ```bash
 cd ~/Projects/NRO-Mod && \
 ./buildmod.sh && \
-java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
+./run-pc.sh
 ```
 
 Quy trình của lệnh trên:
@@ -251,6 +262,8 @@ xóa build cũ
 compile modsrc
    ↓
 patch p.c() bằng PatchAutoBean
+   ↓
+patch bs.class và ev.class cho Vũ trụ 15 + bàn phím
    ↓
 copy JAR base
    ↓
@@ -265,7 +278,7 @@ Nếu compile hoặc patch bị lỗi, script dừng và không tạo JAR mới 
 
 # 9. Script `buildmod.sh`
 
-Project đã có sẵn `buildmod.sh`. Script thực hiện đủ năm bước: compile `modsrc`, compile patcher ASM, patch `p.class`, đóng gói từ `DragonBoy250-Debug4.jar` và kiểm tra các class bắt buộc.
+Project đã có sẵn `buildmod.sh`. Script thực hiện đủ sáu bước: compile `modsrc`, compile patcher ASM, patch `p.class`, patch `bs.class`/`ev.class`, đóng gói từ `DragonBoy250-Debug4.jar` và kiểm tra các class bắt buộc.
 
 Cấp quyền chạy một lần:
 

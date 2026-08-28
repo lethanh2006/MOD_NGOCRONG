@@ -1841,10 +1841,7 @@ jar tf \
 
 ```bash
 cd ~/Projects/NRO-Mod
-
-java -jar \
-  libs/microemulator.jar \
-  dist/DragonBoy250-Mod.jar
+./run-pc.sh
 ```
 
 Sau đó:
@@ -1861,25 +1858,10 @@ DragonBoy
 Sau mỗi lần sửa code:
 
 ```bash
-cd ~/Projects/NRO-Mod && \
-rm -rf build/classes && \
-mkdir -p build/classes && \
-javac \
-  -source 8 \
-  -target 8 \
-  -cp "original/DragonBoy250.jar:libs/microemulator.jar" \
-  -d build/classes \
-  $(find modsrc -name '*.java') && \
-cp \
-  dist/DragonBoy250-Debug4.jar \
-  dist/DragonBoy250-Mod.jar && \
-jar uf \
-  dist/DragonBoy250-Mod.jar \
-  -C build/classes . && \
-java -jar \
-  libs/microemulator.jar \
-  dist/DragonBoy250-Mod.jar
+cd ~/Projects/NRO-Mod && ./buildmod.sh && ./run-pc.sh
 ```
+
+Không thay lệnh này bằng chuỗi `javac + cp Debug4 + jar uf`: chuỗi cũ không chạy các patcher ASM cho `p.class`, `bs.class` và `ev.class`.
 
 ---
 
@@ -1891,54 +1873,12 @@ Tạo:
 cd ~/Projects/NRO-Mod
 
 cat > runmod.sh <<'EOF'
-#!/bin/bash
+#!/bin/sh
+set -eu
 
-set -e
-
-cd "$(dirname "$0")"
-
-echo "======================================"
-echo "  NRO MOD - BUILD & RUN"
-echo "======================================"
-
-echo
-echo "[1/4] Cleaning..."
-
-rm -rf build/classes
-mkdir -p build/classes
-
-echo
-echo "[2/4] Compiling modsrc..."
-
-javac \
-  -source 8 \
-  -target 8 \
-  -cp "original/DragonBoy250.jar:libs/microemulator.jar" \
-  -d build/classes \
-  $(find modsrc -name '*.java')
-
-echo
-echo "[3/4] Updating DragonBoy250-Mod.jar..."
-
-cp \
-  dist/DragonBoy250-Debug4.jar \
-  dist/DragonBoy250-Mod.jar
-
-jar uf \
-  dist/DragonBoy250-Mod.jar \
-  -C build/classes .
-
-echo
-echo "Compiled classes:"
-
-find build/classes -type f
-
-echo
-echo "[4/4] Starting MicroEmulator..."
-
-java -jar \
-  libs/microemulator.jar \
-  dist/DragonBoy250-Mod.jar
+PROJECT_DIR=$(cd "$(dirname "$0")" && pwd)
+"$PROJECT_DIR/buildmod.sh"
+exec "$PROJECT_DIR/run-pc.sh"
 EOF
 ```
 
@@ -2232,13 +2172,13 @@ GIỮ NGUYÊN
 Sau khi sửa code:
 
 ```bash
-./runmod.sh
+./buildmod.sh && ./run-pc.sh
 ```
 
-Nếu chưa tạo `runmod.sh`:
+Hoặc nếu đã tạo `runmod.sh` theo mục 55:
 
 ```bash
-cd ~/Projects/NRO-Mod && rm -rf build/classes && mkdir -p build/classes && javac -source 8 -target 8 -cp "original/DragonBoy250.jar:libs/microemulator.jar" -d build/classes $(find modsrc -name '*.java') && cp dist/DragonBoy250-Debug4.jar dist/DragonBoy250-Mod.jar && jar uf dist/DragonBoy250-Mod.jar -C build/classes . && java -jar libs/microemulator.jar dist/DragonBoy250-Mod.jar
+./runmod.sh
 ```
 
 ---
