@@ -26,12 +26,14 @@ NRO-Mod/
 ├── build/
 │   └── classes/                # Class được tạo ra sau khi compile
 ├── patchwork/                  # Dùng khi cần patch bytecode trực tiếp
-│   └── PatchAutoBean.java      # Chặn ngưỡng ăn đậu 20% của auto train gốc
+│   ├── PatchAutoBean.java      # Chặn ngưỡng ăn đậu 20% của auto train gốc
+│   ├── PatchServerList.java    # Bổ sung Vũ trụ 15 khi cache server còn cũ
+│   └── PatchServerSelection.java # Sửa focus/cuộn/chọn server bằng bàn phím
 ├── dist/
 │   ├── DragonBoy250-Debug4.jar # JAR base đã fix để chạy MicroEmulator
 │   └── DragonBoy250-Mod.jar    # JAR mod được build để chạy
 ├── tools/
-├── buildmod.sh                 # Build Java mod + patch p.class + đóng gói JAR
+├── buildmod.sh                 # Build Java mod + patch p/bs/ev + đóng gói JAR
 └── README.md
 ```
 
@@ -540,6 +542,33 @@ modsrc/dg.java          # gọi AutoBeanMod.update() mỗi game tick
 patchwork/PatchAutoBean.java # bọc call auto-đậu gốc trong p.c()
 ```
 
+## 16.3 Chọn vũ trụ bằng bàn phím
+
+Trong màn hình danh sách máy chủ có thể dùng:
+
+```text
+↑ / ↓ hoặc phím 2 / 8  # đổi mục đang chọn
+Enter hoặc phím 5       # chọn đúng mục đang sáng xanh
+```
+
+`PatchServerSelection.java` sửa ba lỗi bytecode gốc của `ev.class`:
+
+- index bàn phím thay đổi nhưng danh sách không dịch theo;
+- giao diện MicroEmulator có chuột không hiển thị focus bàn phím;
+- phím chọn bị `bb.d()` xóa trước khi `ev` xử lý và nhánh cũ dùng `c % i` thay vì `c`.
+
+Khi focus chạm mép màn hình, danh sách tự dịch lên/xuống để mục đang chọn luôn nhìn thấy. Patch hoạt động với cả layout danh sách cũ và layout có `bh` scroll.
+
+`PatchServerList.java` kiểm tra danh sách nhận từ server hoặc cache `NRlink3`. Nếu cache cũ chưa có `Vũ trụ 15`, patch bổ sung endpoint hiện hành `27.0.14.69:14445`; nếu server đã trả entry này thì giữ nguyên dữ liệu server và không thêm trùng.
+
+Các file tham gia:
+
+```text
+patchwork/PatchServerSelection.java # patch ev.class
+patchwork/PatchServerList.java      # patch bs.class
+buildmod.sh                         # áp cả hai patch khi build
+```
+
 ---
 
 # 17. Git sau khi mod chạy ổn
@@ -565,7 +594,7 @@ Sau mỗi lần sửa code:
 1. Sửa file trong modsrc/
 2. Lưu file
 3. Chạy buildmod.sh
-4. Script compile modsrc và patch p.class
+4. Script compile modsrc và patch p.class, bs.class, ev.class
 5. Script tạo DragonBoy250-Mod.jar từ Debug4.jar
 6. Chạy MicroEmulator
 7. Test

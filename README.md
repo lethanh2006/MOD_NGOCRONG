@@ -766,6 +766,10 @@ Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc 
 
 `PatchAutoBean.java` bọc duy nhất call `p.H()` trong nhánh auto train của `p.c()` bằng điều kiện `!AutoBeanMod.isEnabled()`. Khi `buffdau` bật, ngưỡng tùy chỉnh không bị auto train gốc ăn đậu sớm ở 20% HP/KI và không gửi hai packet trong một tick. Các call `p.H()` từ phím dùng đậu vẫn giữ nguyên; `buffdau 0` cũng giữ hành vi 20% gốc. `buildmod.sh` tự compile và áp patch này lên `p.class` lấy từ `DragonBoy250-Debug4.jar`.
 
+`PatchServerSelection.java` vá `ev.class` để danh sách server dịch theo focus bàn phím, tô sáng đúng mục và xử lý Enter/5 trước khi `bb.d()` xóa phím chọn. Patch cũng map 2/8/5 trên màn hình này; các phím mũi tên và Enter vẫn dùng được như bình thường.
+
+`PatchServerList.java` vá `bs.class`: nếu danh sách động hoặc cache `NRlink3` chưa có `Vũ trụ 15`, client bổ sung `27.0.14.69:14445`. Entry do server trả về luôn được ưu tiên và không bị thêm trùng.
+
 `PatchBt.java` làm ba việc trong `bt.c()`:
 
 1. Đổi resource path `res\\info` thành `res/info`.
@@ -781,7 +785,7 @@ Các tên JAR hiện không đủ để suy ra chính xác nội dung. So với 
 | JAR | Class khác/thêm đáng chú ý |
 |---|---|
 | `DragonBoy250-Speed.jar` | `dg`, `CharacterSpeedMod`; bản speed riêng, mặc định 6 |
-| `DragonBoy250-Mod.jar` | Kế thừa các fix của Debug4; thêm/ghi đè `cq`, `dg`, `p`, `CharacterSpeedMod`, `AutoAttackMod`, `AutoBeanMod` |
+| `DragonBoy250-Mod.jar` | Kế thừa các fix của Debug4; thêm/ghi đè `bs`, `cq`, `dg`, `ev`, `p`, `CharacterSpeedMod`, `AutoAttackMod`, `AutoBeanMod` |
 | `DragonBoy250-Mod-infofix.jar` | `dg`, thêm resource info path |
 | `DragonBoy250-Debug.jar` | `br`, `dg`, `TimeUtil` |
 | `DragonBoy250-Debug2.jar` | `br`, `cf`, `dg`, `TimeUtil` |
