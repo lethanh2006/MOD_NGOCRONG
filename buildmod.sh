@@ -41,13 +41,13 @@ javac \
     -cp "$PROJECT_DIR/tools/asm.jar:$PROJECT_DIR/tools/asm-tree.jar" \
     -d "$PATCH_TOOLS" \
     "$PROJECT_DIR/patchwork/PatchAutoBean.java" \
-    "$PROJECT_DIR/patchwork/PatchServerList.java" \
     "$PROJECT_DIR/patchwork/PatchServerSelection.java"
+# NOTE: PatchServerList disabled — VT15 IP is pushed by server via NRlink3 RMS, not hardcoded
 
 echo "[3/6] Patch p.c() auto-bean call"
 (
     cd "$PATCH_INPUT"
-    jar xf "$BASE_JAR" p.class bs.class ev.class
+    jar xf "$BASE_JAR" p.class ev.class
 )
 java \
     -cp "$PATCH_TOOLS:$PROJECT_DIR/tools/asm.jar:$PROJECT_DIR/tools/asm-tree.jar" \
@@ -55,17 +55,13 @@ java \
     "$PATCH_INPUT/p.class" \
     "$BUILD_CLASSES/p.class"
 
-echo "[4/6] Patch server selection and server list"
+echo "[4/6] Patch server selection"
 java \
     -cp "$PATCH_TOOLS:$PROJECT_DIR/tools/asm.jar:$PROJECT_DIR/tools/asm-tree.jar" \
     PatchServerSelection \
     "$PATCH_INPUT/ev.class" \
     "$BUILD_CLASSES/ev.class"
-java \
-    -cp "$PATCH_TOOLS:$PROJECT_DIR/tools/asm.jar:$PROJECT_DIR/tools/asm-tree.jar" \
-    PatchServerList \
-    "$PATCH_INPUT/bs.class" \
-    "$BUILD_CLASSES/bs.class"
+# PatchServerList skipped: VT15 IP is served dynamically via NRlink3 RMS response
 
 echo "[5/6] Build DragonBoy250-Mod.jar"
 cp "$BASE_JAR" "$OUTPUT_TMP"
@@ -74,7 +70,7 @@ jar uf "$OUTPUT_TMP" -C "$BUILD_CLASSES" .
 echo "[6/6] Verify required classes"
 JAR_ENTRIES="$PATCH_WORK/jar-entries.txt"
 jar tf "$OUTPUT_TMP" > "$JAR_ENTRIES"
-for REQUIRED_CLASS in AutoAttackMod AutoBeanMod CharacterSpeedMod bs cq dg ev p; do
+for REQUIRED_CLASS in AutoAttackMod AutoBeanMod CharacterSpeedMod cq dg ev p; do
     if ! grep -qx "$REQUIRED_CLASS.class" "$JAR_ENTRIES"; then
         echo "Missing required class: $REQUIRED_CLASS.class" >&2
         exit 1

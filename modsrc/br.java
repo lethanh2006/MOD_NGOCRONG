@@ -58,10 +58,15 @@ implements db {
         if (this.d || this.e) {
             return;
         }
+        // Guard: nếu thread connect cũ còn chạy thì không mở thêm
+        if (this.t != null && this.t.isAlive()) {
+            System.out.println(">>connect SKIP: thread still alive");
+            return;
+        }
         if (TimeUtil.d() < this.w) {
             return;
         }
-        this.w = TimeUtil.d() + 50L;
+        this.w = TimeUtil.d() + 3000L;  // cooldown 3s, đủ thời gian handshake
         if (this.c) {
             bs.t = -1;
         }
