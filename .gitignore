@@ -1,0 +1,39 @@
+# ===== Build output =====
+build/classes/
+
+# ===== Dist (chỉ giữ Debug4 làm base, bỏ các bản mod output) =====
+dist/DragonBoy250-Mod.jar
+dist/DragonBoy250-Mod-infofix.jar
+dist/DragonBoy250-Speed.jar
+
+# ===== Thư mục extracted từ JAR (không cần track) =====
+DragonBoy250 (1)/
+DragonBoy250/
+DragonBoy250.*/
+
+# ===== Temp build từ patchwork =====
+patchwork/verify/
+patchwork/mod-patch*/
+
+# ===== Decompile output tạm =====
+/tmp/nro_*/
+
+# ===== Java compile output =====
+*.class
+!build/classes/*.class
+!patchwork/*.class
+
+# ===== IDE =====
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/shelf/
+.idea/httpRequests/
+*.iml.backup
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+*~
+
+# ===== Log =====
+*.log
