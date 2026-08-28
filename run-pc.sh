@@ -9,12 +9,15 @@ if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "/" ]; then
     exit 1
 fi
 
-# Reset server selection mỗi lần chạy để tránh auto-connect vào server lỗi
+# Xóa cache server list mỗi lần chạy để tránh auto-connect vào VT15 (offline)
+# Game sẽ dùng built-in list (VT1-VT11). Server sẽ push lại VT15 sau khi login.
 RMS_DIR="$HOME/.microemulator/suite-DragonBoy"
-if [ -f "$RMS_DIR/vjsvselect.rs" ]; then
-    rm -f "$RMS_DIR/vjsvselect.rs"
-    echo "[run] Reset server selection cache"
-fi
+for RMS_KEY in vjsvselect vjNRlink3; do
+    if [ -f "$RMS_DIR/$RMS_KEY.rs" ]; then
+        rm -f "$RMS_DIR/$RMS_KEY.rs"
+        echo "[run] Cleared $RMS_KEY"
+    fi
+done
 
 exec java -jar "$PROJECT_DIR/libs/microemulator.jar" \
     --resizableDevice 480 320 \
