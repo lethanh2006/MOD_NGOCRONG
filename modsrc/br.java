@@ -82,11 +82,9 @@ implements db {
     public final void a(y y2) {
         ++x;
         this.s.a(y2);
-        System.out.println("SEND MSG: " + y2.a);
     }
 
     private synchronized void b(y object) {
-        System.out.println("DO SEND MSG: " + ((y)object).a);
         byte[] byArray = ((y)object).a();
         try {
             if (this.j) {

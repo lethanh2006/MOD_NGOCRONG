@@ -746,10 +746,12 @@ Các branch hỏng có thể là code chết, code dành cho server khác hoặc
 
 | File | Khác bản decompiled |
 |---|---|
-| `modsrc/br.java` | Dùng `TimeUtil.d()` thay `l.d()`; thêm stack trace khi đóng kết nối; bỏ assignment CFR thừa trong catch |
-| `modsrc/cf.java` | Ép `-27` về `byte`; log exception của connector |
+| `modsrc/br.java` | Dùng `TimeUtil.d()` thay `l.d()`; dọn socket/queue theo generation; bỏ log cho từng packet gửi |
+| `modsrc/cf.java` | Connector có generation guard và báo lần kết nối thất bại của session chính |
+| `modsrc/ct.java` | Watchdog đóng socket đã mở TCP nhưng không hoàn tất handshake trong 10 giây |
 | `modsrc/cq.java` | Chặn lệnh chat cục bộ `ts` và `buffdau` ở cả hai đường submit; chat thường vẫn đi qua callback gốc |
-| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi các hook tốc độ, auto đậu và auto đánh mỗi game tick |
+| `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi các hook mod và xử lý UI kết nối trên game thread |
+| `modsrc/ConnectionStabilityMod.java` | Dừng retry sau 3 lỗi liên tiếp trên cùng server và đưa người chơi về danh sách server |
 | `modsrc/TimeUtil.java` | Wrapper package-default gọi `l.d()` |
 | `modsrc/CharacterSpeedMod.java` | Tăng `af.e().O` của nhân vật chính từ mức server cấp (thường là 4) lên mặc định 6 khi đang ở `p` GameScr |
 | `modsrc/AutoAttackMod.java` | Bật/tắt auto đánh quái bằng chat `ts`; tái sử dụng nhánh auto train có sẵn trong `p.c()` |
@@ -761,13 +763,15 @@ Trong GameScr, chat đúng `ts` (không phân biệt hoa/thường và khoảng 
 
 Chat `buffdau 10` để bật tự dùng đậu khi HP hiện tại còn tối đa 10 điểm; dùng `buffdau 0` để tắt ngưỡng tùy chỉnh. `AutoBeanMod` kiểm tra `af.U` rồi kích hoạt phím dùng đậu nội bộ, nhờ đó thao tác vẫn đi qua `p.H()` và dùng chung guard, cooldown 10 giây, thông báo cùng hiệu ứng gốc. `p.H()` gọi `af.M()`, method nhận diện đậu bằng item type `dd.b == 6` rồi gửi packet dùng item `-43` theo template ID, nên không cần hard-code ID của từng cấp đậu.
 
-Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build, `build/classes/` phải có `dg.class`, `CharacterSpeedMod.class`, `cq.class`, `AutoAttackMod.class` và `AutoBeanMod.class`; đóng gói thiếu class mod mới sẽ gây `NoClassDefFoundError`.
+Nếu cùng một server không mở được socket hoặc không trả handshake ba lần liên tiếp, `ConnectionStabilityMod` tắt vòng auto-retry và hiện nút đưa người chơi về danh sách máy chủ. Bộ đếm được xóa ngay khi nhận handshake thành công hoặc khi người chơi đổi server; mod không tự chuyển vũ trụ vì dữ liệu nhân vật thuộc server đã chọn.
+
+Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build, `build/classes/` phải có các hook được liệt kê trong vòng kiểm tra của `buildmod.sh`, gồm cả `ConnectionStabilityMod.class`; đóng gói thiếu class mod mới sẽ gây `NoClassDefFoundError`.
 
 ### 11.2 `patchwork/`
 
-`PatchAutoBean.java` bọc duy nhất call `p.H()` trong nhánh auto train của `p.c()` bằng điều kiện `!AutoBeanMod.isEnabled()`. Khi `buffdau` bật, ngưỡng tùy chỉnh không bị auto train gốc ăn đậu sớm ở 20% HP/KI và không gửi hai packet trong một tick. Các call `p.H()` từ phím dùng đậu vẫn giữ nguyên; `buffdau 0` cũng giữ hành vi 20% gốc. `buildmod.sh` tự compile và áp patch này lên `p.class` lấy từ `DragonBoy250-Debug4.jar`.
+`PatchAutoBean.java` bọc duy nhất call `p.H()` trong nhánh auto train của `p.c()` bằng điều kiện `!AutoBeanMod.isEnabled()`. Khi `buffdau` bật, ngưỡng tùy chỉnh không bị auto train gốc ăn đậu sớm ở 20% HP/KI và không gửi hai packet trong một tick. Các call `p.H()` từ phím dùng đậu vẫn giữ nguyên; `buffdau 0` cũng giữ hành vi 20% gốc. `buildmod.sh` tự compile và áp patch này lên `p.class` lấy trực tiếp từ JAR gốc.
 
-`PatchServerSelection.java` vá `ev.class` để danh sách server dịch theo focus bàn phím, tô sáng đúng mục và xử lý Enter/5 trước khi `bb.d()` xóa phím chọn. Patch cũng map 2/8/5 trên màn hình này; các phím mũi tên và Enter vẫn dùng được như bình thường.
+`PatchServerSelection.java` vá `ev.class` để danh sách server dịch theo focus bàn phím, tô sáng đúng mục và xử lý Enter/5 trước khi `bb.d()` xóa phím chọn. Patch cũng map 2/8/5 trên màn hình này; các phím mũi tên và Enter vẫn dùng được như bình thường. Khi danh sách bị lọc hoặc sắp xếp lại, patch tìm dòng theo mã server (`de.e == bs.n + 100`) thay vì dùng nhầm chỉ số toàn cục làm chỉ số dòng.
 
 `PatchServerList.java` vá `bs.class`: nếu danh sách động hoặc cache `NRlink3` chưa có `Vũ trụ 15`, client bổ sung `27.0.14.69:14445`. Entry do server trả về luôn được ưu tiên và không bị thêm trùng.
 
@@ -775,13 +779,19 @@ Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc 
 sau khi khởi động lại. Nếu một server đang bảo trì làm client tự kết nối lặp,
 chạy `NRO_RESET_SERVER=1 ./run-pc.sh`; thao tác này chỉ reset `svselect`.
 
-`PatchBt.java` làm ba việc trong `bt.c()`:
+`PatchClientInfo.java` vá cả hai bản sao của logic gửi thông tin client:
+`bt.c()` cho session chính và `ac.a(false)` cho session tải dữ liệu. Patcher:
 
 1. Đổi resource path `res\\info` thành `res/info`.
-2. Tạo byte array theo `InputStream.available()`.
-3. Thay bốn `ACONST_NULL` bằng array đó để read/write info blob.
+2. Chỉ tạo byte array sau khi đã xác nhận stream khác `null`.
+3. Thay bốn `ACONST_NULL` bằng array thật để đọc và gửi info blob.
 
-Các JAR debug/infofix có thêm `res/info` và một số bản còn có entry tên `res\\info`. `original` chỉ có resource root `info`/`info.txt`. Do đó patch phải luôn được kiểm tra cùng đúng layout resource của JAR đích; đổi code mà không thêm đúng entry vẫn không chạy branch.
+`buildmod.sh` lấy resource `info` ở root của JAR chính thức, thêm alias
+`res/info`, rồi áp patch lên cả `bt.class` và `ac.class`. Làm đủ cả hai là bắt
+buộc: chỉ vá session chính vẫn có thể làm session phụ ném
+`NullPointerException` và đóng socket khi tải dữ liệu.
+
+`PatchHotNetworkLogs.java` bỏ hai đoạn tạo chuỗi/log chạy trên mọi packet nhận; `br.java` cũng bỏ log trên mọi packet gửi. Log kết nối, handshake và lỗi xác thực quan trọng vẫn được giữ để chẩn đoán.
 
 ### 11.3 `dist/`
 
@@ -790,7 +800,7 @@ Các tên JAR hiện không đủ để suy ra chính xác nội dung. So với 
 | JAR | Class khác/thêm đáng chú ý |
 |---|---|
 | `DragonBoy250-Speed.jar` | `dg`, `CharacterSpeedMod`; bản speed riêng, mặc định 6 |
-| `DragonBoy250-Mod.jar` | Kế thừa các fix của Debug4; thêm/ghi đè `bs`, `cq`, `dg`, `ev`, `p`, `CharacterSpeedMod`, `AutoAttackMod`, `AutoBeanMod` |
+| `DragonBoy250-Mod.jar` | Build tái lập trực tiếp từ `original`; vá info blob cho hai session rồi thêm/ghi đè các class mod |
 | `DragonBoy250-Mod-infofix.jar` | `dg`, thêm resource info path |
 | `DragonBoy250-Debug.jar` | `br`, `dg`, `TimeUtil` |
 | `DragonBoy250-Debug2.jar` | `br`, `cf`, `dg`, `TimeUtil` |

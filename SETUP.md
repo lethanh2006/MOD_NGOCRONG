@@ -25,7 +25,7 @@ cd ~/Projects/NRO-Mod
 > - `patchwork/` — bytecode patcher
 > - `libs/microemulator.jar` — J2ME emulator
 > - `tools/cfr.jar`, `asm.jar`, `asm-tree.jar` — công cụ build
-> - `dist/DragonBoy250-Debug4.jar` — base JAR đã fix sẵn
+> - `original/DragonBoy250.jar` — base duy nhất; build sẽ tự áp toàn bộ patch cần thiết
 > - `buildmod.sh` — script build 1 lệnh
 > - `run-pc.sh` — script chạy game
 
@@ -88,7 +88,7 @@ Nếu thành công sẽ thấy:
 ```
 [1/6] Compile modsrc
 [2/6] Compile bytecode patchers
-[3/6] Patch p.c() auto-bean call
+[3/6] Patch client compatibility and diagnostics
 [4/6] Patch server list and selection
 [5/6] Build DragonBoy250-Mod.jar
 [6/6] Verify required classes
@@ -127,8 +127,8 @@ cd ~/Projects/NRO-Mod && ./buildmod.sh && ./run-pc.sh
 | Dấu hiệu | Nghĩa |
 |---|---|
 | Game load màn hình chọn server | ✅ Bình thường |
-| Terminal in `>>CF connecting to: <IP>:<PORT>` | ✅ Đang kết nối |
-| Terminal in `=====> getKey true` | ✅ Handshake thành công |
+| Terminal in `>>connect: <IP>:<PORT>` | ✅ Đang kết nối |
+| Terminal in `====> getKey true` | ✅ Handshake thành công |
 | Màn hình login hiện ra | ✅ Vào được |
 
 ---
@@ -147,15 +147,17 @@ NRO-Mod/
 │   ├── AutoAttackMod.java
 │   ├── AutoBeanMod.java
 │   ├── CharacterSpeedMod.java
+│   ├── ConnectionStabilityMod.java
 │   └── TimeUtil.java
 ├── patchwork/                  ← Bytecode patch (ASM)
 │   ├── PatchAutoBean.java
+│   ├── PatchClientInfo.java
+│   ├── PatchHotNetworkLogs.java
 │   ├── PatchServerList.java
 │   └── PatchServerSelection.java
 ├── libs/microemulator.jar      ← J2ME emulator
 ├── tools/                      ← CFR, ASM
 ├── dist/
-│   ├── DragonBoy250-Debug4.jar ← Base JAR đã fix
 │   └── DragonBoy250-Mod.jar    ← Output sau build
 ├── build/classes/              ← Class sinh ra sau compile
 ├── buildmod.sh                 ← Build script
@@ -235,6 +237,9 @@ chọn, không xóa tài khoản hay danh sách máy chủ:
 NRO_RESET_SERVER=1 ./run-pc.sh
 ```
 
+Mod tự dừng vòng kết nối sau ba lỗi liên tiếp và mở danh sách máy chủ; lệnh
+trên hữu ích khi muốn quên lựa chọn đã lưu ngay từ lúc khởi động.
+
 Sau khi build bằng `./buildmod.sh`, VT15 xuất hiện ngay cả khi cache danh sách
 chưa kịp được máy chủ cập nhật.
 
@@ -252,7 +257,7 @@ IP đó không kết nối được. Thoát game, chọn server khác.
 >
 > ✅ JAR output luôn là `dist/DragonBoy250-Mod.jar`
 >
-> ✅ Base JAR dùng để build là `dist/DragonBoy250-Debug4.jar` (đã có sẵn, không cần tạo lại)
+> ✅ Base JAR dùng để build là `original/DragonBoy250.jar`; script tự vá cả session chính và session tải dữ liệu
 
 ---
 

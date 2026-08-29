@@ -16,6 +16,7 @@ NRO-Mod/
 │   ├── AutoBeanMod.java
 │   ├── cf.java
 │   ├── CharacterSpeedMod.java
+│   ├── ConnectionStabilityMod.java
 │   ├── cq.java
 │   ├── dg.java
 │   └── TimeUtil.java
@@ -27,10 +28,11 @@ NRO-Mod/
 │   └── classes/                # Class được tạo ra sau khi compile
 ├── patchwork/                  # Dùng khi cần patch bytecode trực tiếp
 │   ├── PatchAutoBean.java      # Chặn ngưỡng ăn đậu 20% của auto train gốc
+│   ├── PatchClientInfo.java    # Sửa info blob cho primary + secondary session
+│   ├── PatchHotNetworkLogs.java # Bỏ log nóng trên mọi packet nhận
 │   ├── PatchServerList.java    # Bổ sung Vũ trụ 15 khi cache server còn cũ
 │   └── PatchServerSelection.java # Sửa focus/cuộn/chọn server bằng bàn phím
 ├── dist/
-│   ├── DragonBoy250-Debug4.jar # JAR base đã fix để chạy MicroEmulator
 │   └── DragonBoy250-Mod.jar    # JAR mod được build để chạy
 ├── tools/
 ├── buildmod.sh                 # Build Java mod + patch p/bs/ev + đóng gói JAR
@@ -278,7 +280,7 @@ Nếu compile hoặc patch bị lỗi, script dừng và không tạo JAR mới 
 
 # 9. Script `buildmod.sh`
 
-Project đã có sẵn `buildmod.sh`. Script thực hiện đủ sáu bước: compile `modsrc`, compile patcher ASM, patch `p.class`, patch `bs.class`/`ev.class`, đóng gói từ `DragonBoy250-Debug4.jar` và kiểm tra các class bắt buộc.
+Project đã có sẵn `buildmod.sh`. Script thực hiện đủ sáu bước: compile `modsrc`, compile patcher ASM, vá info blob của `bt.class`/`ac.class`, patch `p.class`, patch `bs.class`/`ev.class`, đóng gói trực tiếp từ `original/DragonBoy250.jar` và kiểm tra các class/resource bắt buộc.
 
 Cấp quyền chạy một lần:
 
@@ -570,6 +572,8 @@ Enter hoặc phím 5       # chọn đúng mục đang sáng xanh
 - giao diện MicroEmulator có chuột không hiển thị focus bàn phím;
 - phím chọn bị `bb.d()` xóa trước khi `ev` xử lý và nhánh cũ dùng `c % i` thay vì `c`.
 
+Patch còn khôi phục focus từ server đã lưu bằng mã server của từng dòng, nên danh sách đã lọc/sắp xếp (đặc biệt các vũ trụ mới được đưa lên đầu) không còn dùng nhầm chỉ số toàn cục để tô sáng hoặc kích hoạt sai server.
+
 Khi focus chạm mép màn hình, danh sách tự dịch lên/xuống để mục đang chọn luôn nhìn thấy. Patch hoạt động với cả layout danh sách cũ và layout có `bh` scroll.
 
 `PatchServerList.java` kiểm tra danh sách nhận từ server hoặc cache `NRlink3`. Nếu cache cũ chưa có `Vũ trụ 15`, patch bổ sung endpoint hiện hành `27.0.14.69:14445`; nếu server đã trả entry này thì giữ nguyên dữ liệu server và không thêm trùng.
@@ -607,8 +611,8 @@ Sau mỗi lần sửa code:
 1. Sửa file trong modsrc/
 2. Lưu file
 3. Chạy buildmod.sh
-4. Script compile modsrc và patch p.class, bs.class, ev.class
-5. Script tạo DragonBoy250-Mod.jar từ Debug4.jar
+4. Script compile modsrc và patch ac.class, bt.class, p.class, bs.class, ev.class
+5. Script tạo DragonBoy250-Mod.jar từ original/DragonBoy250.jar
 6. Chạy MicroEmulator
 7. Test
 ```

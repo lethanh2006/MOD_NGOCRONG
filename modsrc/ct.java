@@ -23,6 +23,7 @@ final class ct implements Runnable {
             return;
         }
 
+        ConnectionStabilityMod.recordFailure(session);
         // Use the normal close path so streams, worker threads and queued packets
         // from this failed handshake are all discarded before reconnecting.
         session.e();

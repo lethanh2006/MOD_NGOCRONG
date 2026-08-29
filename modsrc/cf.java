@@ -45,6 +45,7 @@ implements Runnable {
             if (this.a.y != this.d) {
                 return;
             }
+            ConnectionStabilityMod.recordFailure(this.a);
             if (this.a.b != null) {
                 this.a.e();
             }

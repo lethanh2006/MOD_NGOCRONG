@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 public final class PatchServerSelection {
     private static final String CLASS_NAME = "ev";
     private static final String ACTIVATE_METHOD = "nro$activateKeyboardSelection";
+    private static final String RESTORE_METHOD = "nro$restoreSelectedServerFocus";
     private static final String SYNC_METHOD = "nro$syncKeyboardSelection";
 
     private PatchServerSelection() {
@@ -52,15 +53,20 @@ public final class PatchServerSelection {
 
         requireMissingMethod(classNode, "a", "(I)V");
         requireMissingMethod(classNode, ACTIVATE_METHOD, "()Z");
+        requireMissingMethod(classNode, RESTORE_METHOD, "()V");
         requireMissingMethod(classNode, SYNC_METHOD, "()V");
 
         MethodNode inputMethod = createNumericKeyMethod();
         MethodNode activateMethod = createActivateMethod();
+        MethodNode restoreMethod = createRestoreMethod();
         MethodNode syncMethod = createSyncMethod();
         classNode.methods.add(inputMethod);
         classNode.methods.add(activateMethod);
+        classNode.methods.add(restoreMethod);
         classNode.methods.add(syncMethod);
 
+        patchFocusRestore(findMethod(classNode, "a", "()V"));
+        patchFocusRestore(findMethod(classNode, "a", "(II)V"));
         MethodNode updateKeyMethod = findMethod(classNode, "d", "()V");
         patchUpdateKeyMethod(updateKeyMethod);
 
@@ -208,6 +214,64 @@ public final class PatchServerSelection {
         code.add(notHandled);
         code.add(new InsnNode(Opcodes.ICONST_0));
         code.add(new InsnNode(Opcodes.IRETURN));
+        return method;
+    }
+
+    /** Maps the persisted global server index to its row after filtering/sorting. */
+    private static MethodNode createRestoreMethod() {
+        MethodNode method = new MethodNode(
+                Opcodes.ACC_PRIVATE,
+                RESTORE_METHOD,
+                "()V",
+                null,
+                null);
+        InsnList code = method.instructions;
+        LabelNode loopCheck = new LabelNode();
+        LabelNode loopBody = new LabelNode();
+        LabelNode next = new LabelNode();
+        LabelNode done = new LabelNode();
+
+        code.add(new InsnNode(Opcodes.ICONST_0));
+        code.add(new VarInsnNode(Opcodes.ISTORE, 1));
+        code.add(new JumpInsnNode(Opcodes.GOTO, loopCheck));
+
+        code.add(loopBody);
+        code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        code.add(new FieldInsnNode(Opcodes.GETFIELD, CLASS_NAME, "d", "Lel;"));
+        code.add(new VarInsnNode(Opcodes.ILOAD, 1));
+        code.add(new MethodInsnNode(
+                Opcodes.INVOKEVIRTUAL,
+                "java/util/Vector",
+                "elementAt",
+                "(I)Ljava/lang/Object;",
+                false));
+        code.add(new TypeInsnNode(Opcodes.CHECKCAST, "de"));
+        code.add(new FieldInsnNode(Opcodes.GETFIELD, "de", "e", "I"));
+        code.add(new FieldInsnNode(Opcodes.GETSTATIC, "bs", "n", "I"));
+        code.add(new IntInsnNode(Opcodes.BIPUSH, 100));
+        code.add(new InsnNode(Opcodes.IADD));
+        code.add(new JumpInsnNode(Opcodes.IF_ICMPNE, next));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        code.add(new VarInsnNode(Opcodes.ILOAD, 1));
+        code.add(new FieldInsnNode(Opcodes.PUTFIELD, CLASS_NAME, "c", "I"));
+        code.add(new JumpInsnNode(Opcodes.GOTO, done));
+
+        code.add(next);
+        code.add(new org.objectweb.asm.tree.IincInsnNode(1, 1));
+        code.add(loopCheck);
+        code.add(new VarInsnNode(Opcodes.ILOAD, 1));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        code.add(new FieldInsnNode(Opcodes.GETFIELD, CLASS_NAME, "d", "Lel;"));
+        code.add(new MethodInsnNode(
+                Opcodes.INVOKEVIRTUAL,
+                "java/util/Vector",
+                "size",
+                "()I",
+                false));
+        code.add(new JumpInsnNode(Opcodes.IF_ICMPLT, loopBody));
+
+        code.add(done);
+        code.add(new InsnNode(Opcodes.RETURN));
         return method;
     }
 
@@ -501,6 +565,32 @@ public final class PatchServerSelection {
         if (returns != 2) {
             throw new IllegalStateException(
                     "Expected patched ev.d() to contain two returns, found " + returns);
+        }
+    }
+
+    private static void patchFocusRestore(MethodNode method) {
+        int returns = 0;
+        for (AbstractInsnNode instruction = method.instructions.getFirst();
+             instruction != null;
+             instruction = instruction.getNext()) {
+            if (instruction.getOpcode() != Opcodes.RETURN) {
+                continue;
+            }
+            InsnList restore = new InsnList();
+            restore.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            restore.add(new MethodInsnNode(
+                    Opcodes.INVOKESPECIAL,
+                    CLASS_NAME,
+                    RESTORE_METHOD,
+                    "()V",
+                    false));
+            method.instructions.insertBefore(instruction, restore);
+            ++returns;
+        }
+        if (returns != 1) {
+            throw new IllegalStateException(
+                    "Expected one return in " + method.name + method.desc
+                            + ", found " + returns);
         }
     }
 

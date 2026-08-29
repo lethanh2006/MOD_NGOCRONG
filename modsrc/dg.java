@@ -90,6 +90,7 @@ implements Runnable {
             long l2 = System.currentTimeMillis();
             CharacterSpeedMod.update();
             AutoBeanMod.update();
+            ConnectionStabilityMod.update();
             AutoAttackMod.beforeGameTick();
             try {
                 this.d();

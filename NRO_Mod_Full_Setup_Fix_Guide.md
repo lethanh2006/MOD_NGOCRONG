@@ -28,6 +28,11 @@ Tài liệu này ghi lại **toàn bộ quy trình thực tế đã làm với p
 > ~/Projects/NRO-Mod
 > ```
 
+> **Lưu ý hiện tại:** các mục tạo `Debug4.jar` bên dưới là nhật ký điều tra cũ.
+> Quy trình build đang dùng là `./buildmod.sh`: script lấy thẳng
+> `original/DragonBoy250.jar`, vá info blob cho cả session chính lẫn session tải
+> dữ liệu, rồi mới đóng gói `dist/DragonBoy250-Mod.jar`.
+
 ---
 
 # 1. Mục tiêu của project
