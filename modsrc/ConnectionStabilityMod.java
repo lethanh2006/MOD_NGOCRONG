@@ -8,13 +8,15 @@ public final class ConnectionStabilityMod {
     private static int consecutiveFailures;
     private static boolean stopRequested;
     private static boolean handshakeObserved;
+    private static int lastFailedGeneration = -1;
 
     private ConnectionStabilityMod() {
     }
 
     /** Called by connector/watchdog threads after a failed primary connection. */
-    public static synchronized void recordFailure(br session) {
-        if (session == null || !session.c) {
+    public static synchronized void recordFailure(
+            br session, int generation, String reason) {
+        if (session == null || !session.c || session.y != generation) {
             return;
         }
 
@@ -22,7 +24,12 @@ public final class ConnectionStabilityMod {
         if (selectedServer != failedServer) {
             failedServer = selectedServer;
             consecutiveFailures = 0;
+            lastFailedGeneration = -1;
         }
+        if (lastFailedGeneration == generation) {
+            return;
+        }
+        lastFailedGeneration = generation;
         ++consecutiveFailures;
         handshakeObserved = false;
 
@@ -31,7 +38,8 @@ public final class ConnectionStabilityMod {
                         + consecutiveFailures
                         + "/"
                         + MAX_CONSECUTIVE_FAILURES
-                        + ")");
+                        + "): "
+                        + reason);
         if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
             stopRequested = true;
         }
@@ -41,7 +49,7 @@ public final class ConnectionStabilityMod {
     public static void update() {
         br primary = br.a();
         if (primary.d() && primary.j) {
-            markHandshakeSuccess();
+            recordHandshake(primary, primary.y);
         }
 
         int serverToStop;
@@ -79,7 +87,10 @@ public final class ConnectionStabilityMod {
         System.out.println("Stopped automatic retry for unreachable server: " + serverName);
     }
 
-    private static synchronized void markHandshakeSuccess() {
+    public static synchronized void recordHandshake(br session, int generation) {
+        if (session == null || !session.c || session.y != generation) {
+            return;
+        }
         if (handshakeObserved && failedServer == bs.n) {
             return;
         }
@@ -87,6 +98,7 @@ public final class ConnectionStabilityMod {
         failedServer = bs.n;
         consecutiveFailures = 0;
         stopRequested = false;
+        lastFailedGeneration = -1;
     }
 
     private static synchronized void reset() {
@@ -94,5 +106,6 @@ public final class ConnectionStabilityMod {
         consecutiveFailures = 0;
         stopRequested = false;
         handshakeObserved = false;
+        lastFailedGeneration = -1;
     }
 }

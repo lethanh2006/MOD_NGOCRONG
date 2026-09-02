@@ -746,9 +746,12 @@ Các branch hỏng có thể là code chết, code dành cho server khác hoặc
 
 | File | Khác bản decompiled |
 |---|---|
-| `modsrc/br.java` | Dùng `TimeUtil.d()` thay `l.d()`; dọn socket/queue theo generation; bỏ log cho từng packet gửi |
-| `modsrc/cf.java` | Connector có generation guard và báo lần kết nối thất bại của session chính |
-| `modsrc/ct.java` | Watchdog đóng socket đã mở TCP nhưng không hoàn tất handshake trong 10 giây |
+| `modsrc/br.java` | Serialize connect/close, cooldown 5 giây và cô lập socket/queue theo generation |
+| `modsrc/cf.java` | Chỉ publish socket/worker nếu connector vẫn thuộc generation hiện tại |
+| `modsrc/ct.java` | Watchdog generation-aware chờ handshake tối đa 30 giây |
+| `modsrc/s.java` | Receiver giữ cố định stream + generation, worker cũ không thể đọc/đóng socket mới |
+| `modsrc/dw.java` | Mỗi generation có sender queue riêng, không phát lại packet cũ sau reconnect |
+| `modsrc/ProtocolDiagnostics.java` | Log thứ tự handshake/setType/login/status nhưng không đọc hoặc in credential |
 | `modsrc/cq.java` | Chặn lệnh chat cục bộ `ts` và `buffdau` ở cả hai đường submit; chat thường vẫn đi qua callback gốc |
 | `modsrc/dg.java` | `getWidth/getHeight` trả kích thước Canvas thật; gọi các hook mod và xử lý UI kết nối trên game thread |
 | `modsrc/ConnectionStabilityMod.java` | Dừng retry sau 3 lỗi liên tiếp trên cùng server và đưa người chơi về danh sách server |
@@ -763,7 +766,7 @@ Trong GameScr, chat đúng `ts` (không phân biệt hoa/thường và khoảng 
 
 Chat `buffdau 10` để bật tự dùng đậu khi HP hiện tại còn tối đa 10 điểm; dùng `buffdau 0` để tắt ngưỡng tùy chỉnh. `AutoBeanMod` kiểm tra `af.U` rồi kích hoạt phím dùng đậu nội bộ, nhờ đó thao tác vẫn đi qua `p.H()` và dùng chung guard, cooldown 10 giây, thông báo cùng hiệu ứng gốc. `p.H()` gọi `af.M()`, method nhận diện đậu bằng item type `dd.b == 6` rồi gửi packet dùng item `-43` theo template ID, nên không cần hard-code ID của từng cấp đậu.
 
-Nếu cùng một server không mở được socket hoặc không trả handshake ba lần liên tiếp, `ConnectionStabilityMod` tắt vòng auto-retry và hiện nút đưa người chơi về danh sách máy chủ. Bộ đếm được xóa ngay khi nhận handshake thành công hoặc khi người chơi đổi server; mod không tự chuyển vũ trụ vì dữ liệu nhân vật thuộc server đã chọn.
+Nếu cùng một server không mở được socket hoặc không trả handshake ba lần liên tiếp, `ConnectionStabilityMod` tắt vòng auto-retry và hiện nút đưa người chơi về danh sách máy chủ. Mỗi generation chỉ được tính lỗi một lần; bộ đếm được xóa ngay trong receiver khi nhận handshake hoặc khi người chơi đổi server. Mốc 30 giây tránh cắt nhầm Vũ trụ 15 khi server trả key chậm, còn generation guard ngăn reader/sender cũ can thiệp phiên mới.
 
 Toàn bộ `modsrc/*.java` hiện compile thành công với Java 8 + JAR gốc + MicroEmulator. Sau khi build, `build/classes/` phải có các hook được liệt kê trong vòng kiểm tra của `buildmod.sh`, gồm cả `ConnectionStabilityMod.class`; đóng gói thiếu class mod mới sẽ gây `NoClassDefFoundError`.
 
@@ -791,6 +794,18 @@ chạy `NRO_RESET_SERVER=1 ./run-pc.sh`; thao tác này chỉ reset `svselect`.
 buộc: chỉ vá session chính vẫn có thể làm session phụ ném
 `NullPointerException` và đóng socket khi tải dữ liệu.
 
+`PatchPcCompatibility.java` tạo profile tương thích với bản PC 2.5.0 chính
+thức: client type `4`, platform `Pc platform xxx`, qwerty/touch bật, blob
+`info_4` 130 byte và login không có byte language dành riêng cho Java. Patch
+không đổi tài khoản, mật khẩu hoặc phản hồi xác thực của server. Build vẫn tạo
+thêm `DragonBoy250-Mod-Java.jar` với profile Java để A/B hoặc quay lui.
+
+`run-pc.sh` dùng profile `pc` mặc định. Có thể chạy profile Java bằng:
+
+```bash
+NRO_PROTOCOL_PROFILE=java ./run-pc.sh
+```
+
 `PatchHotNetworkLogs.java` bỏ hai đoạn tạo chuỗi/log chạy trên mọi packet nhận; `br.java` cũng bỏ log trên mọi packet gửi. Log kết nối, handshake và lỗi xác thực quan trọng vẫn được giữ để chẩn đoán.
 
 ### 11.3 `dist/`
@@ -800,7 +815,8 @@ Các tên JAR hiện không đủ để suy ra chính xác nội dung. So với 
 | JAR | Class khác/thêm đáng chú ý |
 |---|---|
 | `DragonBoy250-Speed.jar` | `dg`, `CharacterSpeedMod`; bản speed riêng, mặc định 6 |
-| `DragonBoy250-Mod.jar` | Build tái lập trực tiếp từ `original`; vá info blob cho hai session rồi thêm/ghi đè các class mod |
+| `DragonBoy250-Mod.jar` | Bản mod mặc định, dùng profile protocol PC 2.5.0 chính thức |
+| `DragonBoy250-Mod-Java.jar` | Cùng mod nhưng giữ profile protocol Java để A/B/quay lui |
 | `DragonBoy250-Mod-infofix.jar` | `dg`, thêm resource info path |
 | `DragonBoy250-Debug.jar` | `br`, `dg`, `TimeUtil` |
 | `DragonBoy250-Debug2.jar` | `br`, `cf`, `dg`, `TimeUtil` |

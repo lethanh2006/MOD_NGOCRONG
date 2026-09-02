@@ -6,7 +6,10 @@ import java.net.Socket;
 
 /** PC socket wrapper with a bounded connection attempt. */
 public final class ay {
-    private static final int CONNECT_TIMEOUT_MS = 3500;
+    // Universe 15 can take several seconds just to accept a connection when
+    // busy. Keep this below the handshake watchdog, but do not abort a healthy
+    // route after only a short transient delay.
+    private static final int CONNECT_TIMEOUT_MS = 15000;
 
     Socket a;
 

@@ -17,7 +17,7 @@ implements db {
     private ay r;
     public volatile boolean d;
     public volatile boolean e;
-    private final dw s = new dw(this);
+    private volatile dw s = new dw(this, 0);
     private Thread t;
     public Thread f;
     public Thread g;
@@ -43,7 +43,10 @@ implements db {
     }
 
     public final void c() {
-        dw.a(this.s).removeAllElements();
+        dw sender = this.s;
+        if (sender != null) {
+            dw.a(sender).removeAllElements();
+        }
     }
 
     public final boolean d() {
@@ -54,8 +57,7 @@ implements db {
         this.b = bd2;
     }
 
-    public final void a(String string, int n2) {
-        System.out.println(">>connect: " + string + ":" + n2);
+    public final synchronized void a(String string, int n2) {
         if (this.d || this.e) {
             return;
         }
@@ -67,24 +69,49 @@ implements db {
         if (TimeUtil.d() < this.w) {
             return;
         }
-        this.w = TimeUtil.d() + 1000L;
+        this.w = TimeUtil.d() + 5000L;
         if (this.c) {
             bs.t = -1;
         }
         this.j = false;
         br br2 = this;
         br2.f();
-        int generation = ++this.y;
+        int generation = this.y;
+        this.s = new dw(this, generation);
+        // Publish the in-flight state before starting the connector so two
+        // callers cannot both pass the guards above.
+        this.e = true;
+        this.d = true;
+        System.out.println(
+                "CONNECT start ["
+                        + (this.c ? "primary" : "secondary")
+                        + " gen="
+                        + generation
+                        + "] "
+                        + string
+                        + ":"
+                        + n2);
         this.t = new Thread(new cf(this, string, n2, generation));
         this.t.start();
     }
 
     public final void a(y y2) {
         ++x;
-        this.s.a(y2);
+        ProtocolDiagnostics.queued(this, y2, this.y);
+        dw sender = this.s;
+        if (sender != null) {
+            sender.a(y2);
+        }
     }
 
     private synchronized void b(y object) {
+        this.b(object, this.y);
+    }
+
+    private void b(y object, int generation) {
+        if (generation != this.y || !this.d || this.q == null) {
+            return;
+        }
         byte[] byArray = ((y)object).a();
         try {
             if (this.j) {
@@ -136,22 +163,23 @@ implements db {
         return by2;
     }
 
-    public final void e() {
+    public final synchronized void e() {
         this.f();
     }
 
     private void f() {
         // Invalidates connect/watchdog threads that belong to the old socket.
         ++this.y;
+        this.d = false;
+        this.e = false;
         // Messages queued before the handshake belong to the socket being closed.
         // Keeping them would replay stale -29/login packets after the next retry.
         this.c();
+        this.s = null;
         this.k = null;
         this.u = 0;
         this.v = 0;
         try {
-            this.d = false;
-            this.e = false;
             if (this.r != null && this.r.a != null) {
                 this.r.a();
             }
@@ -176,7 +204,9 @@ implements db {
                 bs.t = 0;
             }
             System.gc();
-            ac.c = false;
+            if (this.c) {
+                ac.c = false;
+            }
             return;
         }
         catch (Exception exception) {
@@ -202,12 +232,22 @@ implements db {
         return br2.s;
     }
 
+    static void a(br br2, dw sender) {
+        br2.s = sender;
+    }
+
     static void a(br br2, y y2) {
         br2.b(y2);
     }
 
+    static void a(br br2, y y2, int generation) {
+        synchronized (br2) {
+            br2.b(y2, generation);
+        }
+    }
+
     static void c(br br2) {
-        br2.f();
+        br2.e();
     }
 
     static byte a(br br2, byte by2) {

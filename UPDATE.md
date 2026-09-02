@@ -14,7 +14,12 @@ NRO-Mod/
 ├── modsrc/                     # Nơi viết và sửa code mod
 │   ├── AutoAttackMod.java
 │   ├── AutoBeanMod.java
+│   ├── br.java                 # Session generation-safe, connect/close tuần tự
 │   ├── cf.java
+│   ├── ct.java                 # Watchdog handshake 30 giây
+│   ├── dw.java                 # Sender riêng cho từng generation
+│   ├── s.java                  # Receiver giữ stream/generation cố định
+│   ├── ProtocolDiagnostics.java # Log protocol an toàn, không ghi credential
 │   ├── CharacterSpeedMod.java
 │   ├── ConnectionStabilityMod.java
 │   ├── cq.java
@@ -30,10 +35,12 @@ NRO-Mod/
 │   ├── PatchAutoBean.java      # Chặn ngưỡng ăn đậu 20% của auto train gốc
 │   ├── PatchClientInfo.java    # Sửa info blob cho primary + secondary session
 │   ├── PatchHotNetworkLogs.java # Bỏ log nóng trên mọi packet nhận
+│   ├── PatchPcCompatibility.java # Đồng bộ profile protocol PC 2.5.0 chính thức
 │   ├── PatchServerList.java    # Bổ sung Vũ trụ 15 khi cache server còn cũ
 │   └── PatchServerSelection.java # Sửa focus/cuộn/chọn server bằng bàn phím
 ├── dist/
-│   └── DragonBoy250-Mod.jar    # JAR mod được build để chạy
+│   ├── DragonBoy250-Mod.jar      # Profile PC mặc định
+│   └── DragonBoy250-Mod-Java.jar # Profile Java để A/B/quay lui
 ├── tools/
 ├── buildmod.sh                 # Build Java mod + patch p/bs/ev + đóng gói JAR
 ├── run-pc.sh                   # Chạy MicroEmulator với Canvas PC ngang 480x320
@@ -46,7 +53,8 @@ NRO-Mod/
 - `modsrc/`: nơi **thực sự sửa code mod**.
 - `original/DragonBoy250.jar`: luôn giữ nguyên để làm bản chuẩn.
 - `build/classes/`: kết quả compile.
-- `dist/DragonBoy250-Mod.jar`: file mod cuối cùng để chạy.
+- `dist/DragonBoy250-Mod.jar`: file mod mặc định với profile PC chính thức.
+- `dist/DragonBoy250-Mod-Java.jar`: file dự phòng giữ profile Java.
 - `patchwork/`: chỉ dùng khi source CFR không compile được và phải sửa bytecode.
 
 ---

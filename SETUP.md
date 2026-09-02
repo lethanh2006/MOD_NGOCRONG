@@ -100,7 +100,8 @@ cq.class
 dg.class
 ev.class
 p.class
-Built: .../dist/DragonBoy250-Mod.jar
+Built PC profile: .../dist/DragonBoy250-Mod.jar
+Built Java fallback: .../dist/DragonBoy250-Mod-Java.jar
 ```
 
 ---
@@ -113,6 +114,12 @@ cd ~/Projects/NRO-Mod
 ```
 
 Cửa sổ MicroEmulator mở ra → bấm **Start** → game chạy.
+
+Mặc định script chạy profile PC chính thức. Để đối chiếu lại profile Java:
+
+```bash
+NRO_PROTOCOL_PROFILE=java ./run-pc.sh
+```
 
 ### Lệnh gộp (build + chạy ngay):
 
@@ -127,8 +134,9 @@ cd ~/Projects/NRO-Mod && ./buildmod.sh && ./run-pc.sh
 | Dấu hiệu | Nghĩa |
 |---|---|
 | Game load màn hình chọn server | ✅ Bình thường |
-| Terminal in `>>connect: <IP>:<PORT>` | ✅ Đang kết nối |
-| Terminal in `====> getKey true` | ✅ Handshake thành công |
+| Terminal in `CONNECT start [primary ...]` | ✅ Một lần kết nối thật đã bắt đầu |
+| Terminal in `RECV HANDSHAKE cmd=-27` | ✅ Handshake thành công |
+| Terminal in `RECV SERVICE cmd=-29 sub=2` | ✅ Server đã chấp nhận thông tin client |
 | Màn hình login hiện ra | ✅ Vào được |
 
 ---
@@ -142,8 +150,12 @@ NRO-Mod/
 ├── modsrc/                     ← Code mod — SỬA Ở ĐÂY
 │   ├── br.java
 │   ├── cf.java
+│   ├── ct.java
+│   ├── s.java
+│   ├── dw.java
 │   ├── cq.java
 │   ├── dg.java
+│   ├── ProtocolDiagnostics.java
 │   ├── AutoAttackMod.java
 │   ├── AutoBeanMod.java
 │   ├── CharacterSpeedMod.java
@@ -153,12 +165,14 @@ NRO-Mod/
 │   ├── PatchAutoBean.java
 │   ├── PatchClientInfo.java
 │   ├── PatchHotNetworkLogs.java
+│   ├── PatchPcCompatibility.java
 │   ├── PatchServerList.java
 │   └── PatchServerSelection.java
 ├── libs/microemulator.jar      ← J2ME emulator
 ├── tools/                      ← CFR, ASM
 ├── dist/
-│   └── DragonBoy250-Mod.jar    ← Output sau build
+│   ├── DragonBoy250-Mod.jar      ← Profile PC mặc định
+│   └── DragonBoy250-Mod-Java.jar ← Profile Java dự phòng
 ├── build/classes/              ← Class sinh ra sau compile
 ├── buildmod.sh                 ← Build script
 └── run-pc.sh                   ← Chạy game
@@ -255,7 +269,7 @@ IP đó không kết nối được. Thoát game, chọn server khác.
 >
 > ⚠️ **KHÔNG** compile cả thư mục `decompiled/` — chỉ compile file trong `modsrc/`
 >
-> ✅ JAR output luôn là `dist/DragonBoy250-Mod.jar`
+> ✅ JAR mặc định là `dist/DragonBoy250-Mod.jar`; bản A/B Java là `dist/DragonBoy250-Mod-Java.jar`
 >
 > ✅ Base JAR dùng để build là `original/DragonBoy250.jar`; script tự vá cả session chính và session tải dữ liệu
 
